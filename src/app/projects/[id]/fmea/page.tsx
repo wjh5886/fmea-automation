@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, type FmeaItem, type SwUnit, type Project } from '@/lib/supabase'
+import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
 
 const FAILURE_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -85,6 +85,8 @@ export default function FmeaTablePage() {
   const { id } = useParams<{ id: string }>()
   const [project, setProject] = useState<Project | null>(null)
   const [units, setUnits] = useState<SwUnit[]>([])
+  const [sgs, setSgs] = useState<SafetyGoal[]>([])
+  const [sms, setSms] = useState<SafetyMechanism[]>([])
   const [items, setItems] = useState<FmeaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filterUnit, setFilterUnit] = useState('')
@@ -96,13 +98,17 @@ export default function FmeaTablePage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: proj }, { data: unitData }, { data: itemData }] = await Promise.all([
+    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData }, { data: itemData }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
+      supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
+      supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
       supabase.from('fmea_items').select('*, sw_units(name)').eq('project_id', id).order('item_no').order('failure_mode'),
     ])
     setProject(proj)
     setUnits(unitData ?? [])
+    setSgs(sgData ?? [])
+    setSms(smData ?? [])
     setItems(itemData ?? [])
     setLoading(false)
   }, [id])
@@ -248,6 +254,8 @@ export default function FmeaTablePage() {
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Preventive</th>
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Detection</th>
                 <th className="px-3 py-2 text-center font-medium text-slate-600 w-20">상태</th>
+                <th className="px-3 py-2 text-left font-medium text-slate-600 w-24">SG</th>
+                <th className="px-3 py-2 text-left font-medium text-slate-600 w-24">SM</th>
                 <th className="px-3 py-2 text-center font-medium text-slate-600 w-16">AI</th>
               </tr>
             </thead>
@@ -283,6 +291,20 @@ export default function FmeaTablePage() {
                       <option value="draft">draft</option>
                       <option value="in_review">검토중</option>
                       <option value="approved">승인</option>
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <select value={item.safety_goal_id ?? ''} onChange={e => updateItem(item.id, { safety_goal_id: e.target.value || null })}
+                      className="w-full border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      <option value="">-</option>
+                      {sgs.map(sg => <option key={sg.id} value={sg.id}>{sg.sg_id}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <select value={item.safety_mechanism_id ?? ''} onChange={e => updateItem(item.id, { safety_mechanism_id: e.target.value || null })}
+                      className="w-full border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      <option value="">-</option>
+                      {sms.map(sm => <option key={sm.id} value={sm.id}>{sm.sm_id}</option>)}
                     </select>
                   </td>
                   <td className="px-3 py-2 text-center">

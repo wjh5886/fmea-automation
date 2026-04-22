@@ -22,6 +22,28 @@ export type SwUnit = {
   created_at: string
 }
 
+export type SafetyGoal = {
+  id: string
+  project_id: string
+  sg_id: string
+  name: string
+  description: string | null
+  asil: 'QM' | 'A' | 'B' | 'C' | 'D' | null
+  created_at: string
+}
+
+export type SafetyMechanism = {
+  id: string
+  project_id: string
+  sm_id: string
+  name: string
+  description: string | null
+  type: 'Preventive' | 'Detection' | 'Both' | null
+  diagnostic_coverage: 'Low' | 'Medium' | 'High' | 'N/A' | null
+  related_sg_id: string | null
+  created_at: string
+}
+
 export type FmeaItem = {
   id: string
   project_id: string
@@ -43,9 +65,13 @@ export type FmeaItem = {
   detection_action: string | null
   cm_required: boolean | null
   countermeasure: string | null
+  safety_goal_id: string | null
+  safety_mechanism_id: string | null
   status: 'draft' | 'in_review' | 'approved'
   ai_generated: boolean
   created_at: string
   updated_at: string
   sw_units?: SwUnit
+  safety_goals?: SafetyGoal
+  safety_mechanisms?: SafetyMechanism
 }
