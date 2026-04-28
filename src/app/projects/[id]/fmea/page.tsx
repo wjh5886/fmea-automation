@@ -287,8 +287,12 @@ export default function FmeaTablePage() {
             <tbody className="divide-y divide-slate-100">
               {filtered.map(item => {
                 const swName = (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'
-                const T = ({ v, cls }: { v: string | null | undefined, cls?: string }) => (
-                  <td className={`px-2 py-1.5 text-slate-600 max-w-[12rem] truncate ${cls ?? ''}`} style={{ whiteSpace: 'normal' }} title={v ?? ''}>{v ?? '-'}</td>
+                const T = ({ v, ml, cls }: { v: string | null | undefined, ml?: boolean, cls?: string }) => (
+                  <td className={`px-2 py-1.5 text-slate-600 max-w-[14rem] align-top ${cls ?? ''}`}
+                    style={{ whiteSpace: ml ? 'pre-line' : 'normal', wordBreak: 'break-word' }}
+                    title={!ml ? (v ?? '') : undefined}>
+                    {v ?? '-'}
+                  </td>
                 )
                 return (
                   <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
@@ -305,10 +309,10 @@ export default function FmeaTablePage() {
                     <td className="px-2 py-1.5 border-l border-slate-100">
                       <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
                     </td>
-                    <T v={item.failure_detail} />
-                    <T v={item.effect_module} />
-                    <T v={item.potential_cause} />
-                    <T v={item.effect_system} />
+                    <T v={item.failure_detail} ml />
+                    <T v={item.effect_module} ml />
+                    <T v={item.potential_cause} ml />
+                    <T v={item.effect_system} ml />
                     <T v={item.effect_safety_goal} />
                     <td className="px-2 py-1.5 text-center border-l border-slate-100"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
                     <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
@@ -316,8 +320,8 @@ export default function FmeaTablePage() {
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-1.5 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
-                    <T v={item.safety_mechanism_text} />
-                    <T v={item.test_method} />
+                    <T v={item.safety_mechanism_text} ml />
+                    <T v={item.test_method} ml />
                     <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
                       <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={1}
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
@@ -329,7 +333,7 @@ export default function FmeaTablePage() {
                         {item.cm_required === true ? 'Y' : item.cm_required === false ? 'N' : '-'}
                       </span>
                     </td>
-                    <T v={item.countermeasure} />
+                    <T v={item.countermeasure} ml />
                     <td className="px-2 py-1.5 text-center text-slate-500">{item.severity_after ?? '-'}</td>
                     <td className="px-2 py-1.5 text-center text-slate-500">{item.occurrence_after ?? '-'}</td>
                     <td className="px-2 py-1.5 text-center text-slate-500">{item.detection_after ?? '-'}</td>
