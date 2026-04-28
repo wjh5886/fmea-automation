@@ -103,7 +103,7 @@ export default function FmeaTablePage() {
       supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
       supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
       supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
-      supabase.from('fmea_items').select('*, sw_units(name)').eq('project_id', id).order('item_no').order('failure_mode'),
+      supabase.from('fmea_items').select('*, sw_units(name), signal_range').eq('project_id', id).order('item_no').order('failure_mode'),
     ])
     setProject(proj)
     setUnits(unitData ?? [])
@@ -155,10 +155,10 @@ export default function FmeaTablePage() {
   }
 
   const exportCsv = () => {
-    const headers = ['No', 'SW Unit', 'Category', 'Variable', 'Type', 'Failure Mode', 'Detail', 'Effect Module', 'Effect System', 'S', 'O', 'D', 'RPN', 'Preventive', 'Detection', 'Status']
+    const headers = ['No', 'SW Unit', 'Category', 'Variable', 'Type', 'Range', 'Failure Mode', 'Detail', 'Effect Module', 'Effect System', 'S', 'O', 'D', 'RPN', 'Preventive', 'Detection', 'Status']
     const rows = filtered.map(i => [
       i.item_no, (i as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '', i.category, i.variable_name, i.variable_type,
-      i.failure_mode, i.failure_detail, i.effect_module, i.effect_system,
+      i.signal_range, i.failure_mode, i.failure_detail, i.effect_module, i.effect_system,
       i.severity, i.occurrence, i.detection, i.rpn, i.preventive_action, i.detection_action, i.status,
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -245,6 +245,7 @@ export default function FmeaTablePage() {
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-36">SW Unit</th>
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-20">Category</th>
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Variable</th>
+                <th className="px-3 py-2 text-left font-medium text-slate-600 w-36">Range</th>
                 <th className="px-3 py-2 text-left font-medium text-slate-600 w-20">Mode</th>
                 <th className="px-3 py-2 text-left font-medium text-slate-600">Effect (System)</th>
                 <th className="px-3 py-2 text-center font-medium text-slate-600 w-12">S</th>
@@ -270,6 +271,7 @@ export default function FmeaTablePage() {
                     </span>
                   </td>
                   <td className="px-3 py-2 font-mono text-slate-700 max-w-[11rem] truncate" title={item.variable_name}>{item.variable_name}</td>
+                  <td className="px-3 py-2 text-slate-500 max-w-[9rem] truncate text-xs" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
                   <td className="px-3 py-2">
                     <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono">{item.failure_mode ?? '-'}</span>
                   </td>

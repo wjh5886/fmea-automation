@@ -65,6 +65,7 @@ export type FmeaItem = {
   detection_action: string | null
   cm_required: boolean | null
   countermeasure: string | null
+  signal_range: string | null
   safety_goal_id: string | null
   safety_mechanism_id: string | null
   status: 'draft' | 'in_review' | 'approved'
