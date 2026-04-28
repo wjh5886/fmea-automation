@@ -66,6 +66,17 @@ export type FmeaItem = {
   cm_required: boolean | null
   countermeasure: string | null
   signal_range: string | null
+  potential_cause: string | null
+  test_method: string | null
+  safety_mechanism_text: string | null
+  severity_after: number | null
+  occurrence_after: number | null
+  detection_after: number | null
+  rpn_after: number | null
+  target_date: string | null
+  responsibility: string | null
+  reference_result: string | null
+  finish_date: string | null
   safety_goal_id: string | null
   safety_mechanism_id: string | null
   status: 'draft' | 'in_review' | 'approved'

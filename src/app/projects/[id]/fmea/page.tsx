@@ -103,7 +103,7 @@ export default function FmeaTablePage() {
       supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
       supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
       supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
-      supabase.from('fmea_items').select('*, sw_units(name), signal_range').eq('project_id', id).order('item_no').order('failure_mode'),
+      supabase.from('fmea_items').select('*,sw_units(name)').eq('project_id', id).order('item_no').order('failure_mode'),
     ])
     setProject(proj)
     setUnits(unitData ?? [])
@@ -155,11 +155,15 @@ export default function FmeaTablePage() {
   }
 
   const exportCsv = () => {
-    const headers = ['No', 'SW Unit', 'Category', 'Variable', 'Type', 'Range', 'Failure Mode', 'Detail', 'Effect Module', 'Effect System', 'S', 'O', 'D', 'RPN', 'Preventive', 'Detection', 'Status']
+    const headers = ['No','SW Unit Name','Interface Category','Interface(Variable) name','Interface(Variable) type','Range','Failure mode','Detail of the failure mode','Effect on Module','Potential Cause','Effect on System','Effect on SG','S','Preventive Action','O','Safety Mechanism','Test Method','Detection Action','D','RPN','CM?','Countermeasure','S\'','O\'','D\'','RPN\'','Target Date','Responsibility','Reference result','Finish Date','Status']
     const rows = filtered.map(i => [
-      i.item_no, (i as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '', i.category, i.variable_name, i.variable_type,
-      i.signal_range, i.failure_mode, i.failure_detail, i.effect_module, i.effect_system,
-      i.severity, i.occurrence, i.detection, i.rpn, i.preventive_action, i.detection_action, i.status,
+      i.item_no, (i as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '', i.category,
+      i.variable_name, i.variable_type, i.signal_range,
+      i.failure_mode, i.failure_detail, i.effect_module, i.potential_cause, i.effect_system, i.effect_safety_goal,
+      i.severity, i.preventive_action, i.occurrence, i.safety_mechanism_text, i.test_method, i.detection_action, i.detection, i.rpn,
+      i.cm_required === true ? 'Y' : i.cm_required === false ? 'N' : '',
+      i.countermeasure, i.severity_after, i.occurrence_after, i.detection_after, i.rpn_after,
+      i.target_date, i.responsibility, i.reference_result, i.finish_date, i.status,
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -241,83 +245,115 @@ export default function FmeaTablePage() {
           <table className="text-xs" style={{ tableLayout: 'auto', whiteSpace: 'nowrap' }}>
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">No</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">SW Unit</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Cat</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Variable</th>
+                {/* 기본 식별 */}
+                <th className="px-2 py-2 text-left font-medium text-slate-600 border-r border-slate-200">No</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">SW Unit Name</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface Category</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface(Variable) name</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface(Variable) type</th>
                 <th className="px-2 py-2 text-left font-medium text-slate-600">Range</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Mode</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '8rem' }}>Effect (System)</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">S</th>
+                {/* 고장 분석 */}
+                <th className="px-2 py-2 text-left font-medium text-slate-600 border-l border-slate-200">Failure mode</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detail of the failure mode</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Effect on Module</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Potential Cause</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Effect on System</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Effect on SG</th>
+                {/* S/O/D */}
+                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">S</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Preventive Action</th>
                 <th className="px-2 py-2 text-center font-medium text-slate-600">O</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Safety Mechanism</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '7rem' }}>Test Method</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detection Action</th>
                 <th className="px-2 py-2 text-center font-medium text-slate-600">D</th>
                 <th className="px-2 py-2 text-center font-medium text-slate-600">RPN</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Preventive</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detection</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">상태</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">SG</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">SM</th>
+                {/* 대책 */}
+                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">CM?</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Countermeasure</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">S'</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">O'</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">D'</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">RPN'</th>
+                {/* 관리 */}
+                <th className="px-2 py-2 text-left font-medium text-slate-600 border-l border-slate-200">Target Date</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Responsibility</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Reference result</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Finish Date</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">상태</th>
                 <th className="px-2 py-2 text-center font-medium text-slate-600">AI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map(item => (
-                <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
-                  <td className="px-2 py-1.5 text-slate-500 font-mono">{item.item_no}</td>
-                  <td className="px-2 py-1.5 text-slate-700 font-mono max-w-[8rem] truncate" title={(item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? ''}>{(item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'}</td>
-                  <td className="px-2 py-1.5">
-                    <span className={`px-1 py-0.5 rounded text-xs ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {item.category === 'External' ? 'Ext' : item.category === 'Internal' ? 'Int' : '-'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[10rem] truncate" title={item.variable_name}>{item.variable_name}</td>
-                  <td className="px-2 py-1.5 text-slate-500 max-w-[12rem] truncate" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
-                  <td className="px-2 py-1.5">
-                    <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
-                  </td>
-                  <td className="px-2 py-1.5 text-slate-600 max-w-[12rem] truncate" style={{ whiteSpace: 'normal' }} title={item.effect_system ?? ''}>{item.effect_system ?? '-'}</td>
-                  <td className="px-2 py-1.5 text-center"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
-                  <td className="px-2 py-1.5 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
-                  <td className="px-2 py-1.5 text-center"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
-                  <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn} /></td>
-                  <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
-                    <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={1}
-                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                  </td>
-                  <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
-                    <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={1}
-                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <select value={item.status} onChange={e => updateItem(item.id, { status: e.target.value as FmeaItem['status'] })} className="border border-slate-200 rounded px-1 py-0.5 text-xs">
-                      <option value="draft">draft</option>
-                      <option value="in_review">검토중</option>
-                      <option value="approved">승인</option>
-                    </select>
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <select value={item.safety_goal_id ?? ''} onChange={e => updateItem(item.id, { safety_goal_id: e.target.value || null })}
-                      className="border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
-                      <option value="">-</option>
-                      {sgs.map(sg => <option key={sg.id} value={sg.id}>{sg.sg_id}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <select value={item.safety_mechanism_id ?? ''} onChange={e => updateItem(item.id, { safety_mechanism_id: e.target.value || null })}
-                      className="border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
-                      <option value="">-</option>
-                      {sms.map(sm => <option key={sm.id} value={sm.id}>{sm.sm_id}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
-                      className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
-                      {analyzingId === item.id ? '...' : '🤖'}
-                    </button>
-                    {item.ai_generated && <div className="text-slate-300 text-xs mt-0.5">AI</div>}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(item => {
+                const swName = (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'
+                const T = ({ v, cls }: { v: string | null | undefined, cls?: string }) => (
+                  <td className={`px-2 py-1.5 text-slate-600 max-w-[12rem] truncate ${cls ?? ''}`} style={{ whiteSpace: 'normal' }} title={v ?? ''}>{v ?? '-'}</td>
+                )
+                return (
+                  <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-2 py-1.5 text-slate-500 font-mono border-r border-slate-100">{item.item_no}</td>
+                    <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[8rem] truncate" title={swName}>{swName}</td>
+                    <td className="px-2 py-1.5">
+                      <span className={`px-1 py-0.5 rounded ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                        {item.category === 'External' ? 'External' : item.category === 'Internal' ? 'Internal' : '-'}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[10rem] truncate" title={item.variable_name}>{item.variable_name}</td>
+                    <td className="px-2 py-1.5 text-slate-500">{item.variable_type ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500 max-w-[10rem] truncate" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
+                    <td className="px-2 py-1.5 border-l border-slate-100">
+                      <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
+                    </td>
+                    <T v={item.failure_detail} />
+                    <T v={item.effect_module} />
+                    <T v={item.potential_cause} />
+                    <T v={item.effect_system} />
+                    <T v={item.effect_safety_goal} />
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
+                    <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
+                      <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={1}
+                        className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    </td>
+                    <td className="px-2 py-1.5 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
+                    <T v={item.safety_mechanism_text} />
+                    <T v={item.test_method} />
+                    <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
+                      <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={1}
+                        className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    </td>
+                    <td className="px-2 py-1.5 text-center"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
+                    <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn} /></td>
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100">
+                      <span className={`px-1 py-0.5 rounded text-xs font-medium ${item.cm_required === true ? 'bg-orange-100 text-orange-700' : item.cm_required === false ? 'bg-slate-100 text-slate-500' : 'text-slate-300'}`}>
+                        {item.cm_required === true ? 'Y' : item.cm_required === false ? 'N' : '-'}
+                      </span>
+                    </td>
+                    <T v={item.countermeasure} />
+                    <td className="px-2 py-1.5 text-center text-slate-500">{item.severity_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-slate-500">{item.occurrence_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-slate-500">{item.detection_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn_after} /></td>
+                    <td className="px-2 py-1.5 text-slate-500 border-l border-slate-100">{item.target_date ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500">{item.responsibility ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500 max-w-[8rem] truncate" title={item.reference_result ?? ''}>{item.reference_result ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500">{item.finish_date ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100">
+                      <select value={item.status} onChange={e => updateItem(item.id, { status: e.target.value as FmeaItem['status'] })} className="border border-slate-200 rounded px-1 py-0.5 text-xs">
+                        <option value="draft">draft</option>
+                        <option value="in_review">검토중</option>
+                        <option value="approved">승인</option>
+                      </select>
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
+                        className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
+                        {analyzingId === item.id ? '...' : '🤖'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
