@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
@@ -95,6 +95,28 @@ export default function FmeaTablePage() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [analyzingAll, setAnalyzingAll] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [colWidths, setColWidths] = useState<Record<number, number>>({})
+  const resizeRef = useRef<{ col: number; startX: number; startW: number } | null>(null)
+
+  const startResize = useCallback((col: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    const th = (e.currentTarget as HTMLElement).closest('th') as HTMLElement
+    resizeRef.current = { col, startX: e.clientX, startW: th.offsetWidth }
+    const onMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return
+      const { col: c, startX, startW } = resizeRef.current
+      setColWidths(prev => ({ ...prev, [c]: Math.max(40, startW + ev.clientX - startX) }))
+    }
+    const onUp = () => {
+      resizeRef.current = null
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [])
+
+  const cw = (col: number, def: number) => colWidths[col] ?? def
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -242,71 +264,82 @@ export default function FmeaTablePage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="text-xs" style={{ tableLayout: 'auto', whiteSpace: 'nowrap' }}>
+          <table className="text-xs" style={{ tableLayout: 'fixed', whiteSpace: 'nowrap', width: 'max-content' }}>
+            <colgroup>
+              {[48,140,90,160,80,180,80,160,160,160,160,80,50,160,50,180,120,160,50,60,50,160,50,50,50,60,100,120,120,100,90,50].map((w,i) => (
+                <col key={i} style={{ width: cw(i, w) }} />
+              ))}
+            </colgroup>
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {/* 기본 식별 */}
-                <th className="px-2 py-2 text-left font-medium text-slate-600 border-r border-slate-200">No</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">SW Unit Name</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface Category</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface(Variable) name</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Interface(Variable) type</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Range</th>
-                {/* 고장 분석 */}
-                <th className="px-2 py-2 text-left font-medium text-slate-600 border-l border-slate-200">Failure mode</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detail of the failure mode</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Effect on Module</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Potential Cause</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Effect on System</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Effect on SG</th>
-                {/* S/O/D */}
-                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">S</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Preventive Action</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">O</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Safety Mechanism</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '7rem' }}>Test Method</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detection Action</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">D</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">RPN</th>
-                {/* 대책 */}
-                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">CM?</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Countermeasure</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">S'</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">O'</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">D'</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">RPN'</th>
-                {/* 관리 */}
-                <th className="px-2 py-2 text-left font-medium text-slate-600 border-l border-slate-200">Target Date</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Responsibility</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Reference result</th>
-                <th className="px-2 py-2 text-left font-medium text-slate-600">Finish Date</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600 border-l border-slate-200">상태</th>
-                <th className="px-2 py-2 text-center font-medium text-slate-600">AI</th>
+                {([
+                  [0,'No','border-r border-slate-200'],
+                  [1,'SW Unit Name',''],
+                  [2,'Interface Category',''],
+                  [3,'Interface(Variable) name',''],
+                  [4,'Interface(Variable) type',''],
+                  [5,'Range',''],
+                  [6,'Failure mode','border-l border-slate-200'],
+                  [7,'Detail of the failure mode',''],
+                  [8,'Effect on Module',''],
+                  [9,'Potential Cause',''],
+                  [10,'Effect on System',''],
+                  [11,'Effect on SG',''],
+                  [12,'S','border-l border-slate-200 text-center'],
+                  [13,'Preventive Action',''],
+                  [14,'O','text-center'],
+                  [15,'Safety Mechanism',''],
+                  [16,'Test Method',''],
+                  [17,'Detection Action',''],
+                  [18,'D','text-center'],
+                  [19,'RPN','text-center'],
+                  [20,'CM?','border-l border-slate-200 text-center'],
+                  [21,'Countermeasure',''],
+                  [22,"S'",'text-center'],
+                  [23,"O'",'text-center'],
+                  [24,"D'",'text-center'],
+                  [25,"RPN'",'text-center'],
+                  [26,'Target Date','border-l border-slate-200'],
+                  [27,'Responsibility',''],
+                  [28,'Reference result',''],
+                  [29,'Finish Date',''],
+                  [30,'상태','border-l border-slate-200 text-center'],
+                  [31,'AI','text-center'],
+                ] as [number, string, string][]).map(([col, label, cls]) => (
+                  <th key={col} className={`px-2 py-2 font-medium text-slate-600 text-left overflow-hidden relative select-none ${cls}`}
+                    style={{ width: cw(col, 0) }}>
+                    <span className="block overflow-hidden text-ellipsis">{label}</span>
+                    <div
+                      onMouseDown={e => startResize(col, e)}
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 z-10"
+                    />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map(item => {
                 const swName = (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'
                 const T = ({ v, ml, cls }: { v: string | null | undefined, ml?: boolean, cls?: string }) => (
-                  <td className={`px-2 py-1.5 text-slate-600 max-w-[14rem] align-top ${cls ?? ''}`}
-                    style={{ whiteSpace: ml ? 'pre-line' : 'normal', wordBreak: 'break-word' }}
-                    title={!ml ? (v ?? '') : undefined}>
+                  <td className={`px-2 py-1.5 text-slate-600 overflow-hidden align-top ${cls ?? ''}`}
+                    style={{ whiteSpace: ml ? 'pre-line' : 'nowrap', overflow: 'hidden', textOverflow: ml ? 'clip' : 'ellipsis' }}
+                    title={v ?? ''}>
                     {v ?? '-'}
                   </td>
                 )
                 return (
                   <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-2 py-1.5 text-slate-500 font-mono border-r border-slate-100">{item.item_no}</td>
-                    <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[8rem] truncate" title={swName}>{swName}</td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-2 py-1.5 text-slate-500 font-mono overflow-hidden border-r border-slate-100" style={{ textOverflow: 'ellipsis' }}>{item.item_no}</td>
+                    <td className="px-2 py-1.5 font-mono text-slate-700 overflow-hidden" style={{ textOverflow: 'ellipsis' }} title={swName}>{swName}</td>
+                    <td className="px-2 py-1.5 overflow-hidden">
                       <span className={`px-1 py-0.5 rounded ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                         {item.category === 'External' ? 'External' : item.category === 'Internal' ? 'Internal' : '-'}
                       </span>
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[10rem] truncate" title={item.variable_name}>{item.variable_name}</td>
-                    <td className="px-2 py-1.5 text-slate-500">{item.variable_type ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-slate-500 max-w-[10rem] truncate" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
-                    <td className="px-2 py-1.5 border-l border-slate-100">
+                    <td className="px-2 py-1.5 font-mono text-slate-700 overflow-hidden" style={{ textOverflow: 'ellipsis' }} title={item.variable_name}>{item.variable_name}</td>
+                    <td className="px-2 py-1.5 text-slate-500 overflow-hidden" style={{ textOverflow: 'ellipsis' }}>{item.variable_type ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500 overflow-hidden" style={{ whiteSpace: 'pre-line', textOverflow: 'ellipsis' }} title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
+                    <td className="px-2 py-1.5 border-l border-slate-100 overflow-hidden">
                       <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
                     </td>
                     <T v={item.failure_detail} ml />
