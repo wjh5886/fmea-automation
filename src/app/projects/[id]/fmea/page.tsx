@@ -238,78 +238,78 @@ export default function FmeaTablePage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full text-xs">
+          <table className="text-xs" style={{ tableLayout: 'auto', whiteSpace: 'nowrap' }}>
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-14">No</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-36">SW Unit</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-20">Category</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Variable</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-36">Range</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-20">Mode</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600">Effect (System)</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-12">S</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-12">O</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-12">D</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-16">RPN</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Preventive</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-44">Detection</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-20">상태</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-24">SG</th>
-                <th className="px-3 py-2 text-left font-medium text-slate-600 w-24">SM</th>
-                <th className="px-3 py-2 text-center font-medium text-slate-600 w-16">AI</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">No</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">SW Unit</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Cat</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Variable</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Range</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">Mode</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '8rem' }}>Effect (System)</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">S</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">O</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">D</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">RPN</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Preventive</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600" style={{ minWidth: '9rem' }}>Detection</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">상태</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">SG</th>
+                <th className="px-2 py-2 text-left font-medium text-slate-600">SM</th>
+                <th className="px-2 py-2 text-center font-medium text-slate-600">AI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map(item => (
                 <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
-                  <td className="px-3 py-2 text-slate-500 font-mono">{item.item_no}</td>
-                  <td className="px-3 py-2 text-slate-700 font-mono text-xs">{(item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-1.5 py-0.5 rounded text-xs ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {item.category ?? '-'}
+                  <td className="px-2 py-1.5 text-slate-500 font-mono">{item.item_no}</td>
+                  <td className="px-2 py-1.5 text-slate-700 font-mono max-w-[8rem] truncate" title={(item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? ''}>{(item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'}</td>
+                  <td className="px-2 py-1.5">
+                    <span className={`px-1 py-0.5 rounded text-xs ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                      {item.category === 'External' ? 'Ext' : item.category === 'Internal' ? 'Int' : '-'}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-slate-700 max-w-[11rem] truncate" title={item.variable_name}>{item.variable_name}</td>
-                  <td className="px-3 py-2 text-slate-500 max-w-[9rem] truncate text-xs" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
-                  <td className="px-3 py-2">
-                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono">{item.failure_mode ?? '-'}</span>
+                  <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[10rem] truncate" title={item.variable_name}>{item.variable_name}</td>
+                  <td className="px-2 py-1.5 text-slate-500 max-w-[12rem] truncate" title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
+                  <td className="px-2 py-1.5">
+                    <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
                   </td>
-                  <td className="px-3 py-2 text-slate-600 max-w-xs truncate" title={item.effect_system ?? ''}>{item.effect_system ?? '-'}</td>
-                  <td className="px-3 py-2 text-center"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
-                  <td className="px-3 py-2 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
-                  <td className="px-3 py-2 text-center"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
-                  <td className="px-3 py-2 text-center"><RpnBadge rpn={item.rpn} /></td>
-                  <td className="px-3 py-2">
-                    <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={2}
-                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  <td className="px-2 py-1.5 text-slate-600 max-w-[12rem] truncate" style={{ whiteSpace: 'normal' }} title={item.effect_system ?? ''}>{item.effect_system ?? '-'}</td>
+                  <td className="px-2 py-1.5 text-center"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
+                  <td className="px-2 py-1.5 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
+                  <td className="px-2 py-1.5 text-center"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
+                  <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn} /></td>
+                  <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
+                    <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={1}
+                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                   </td>
-                  <td className="px-3 py-2">
-                    <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={2}
-                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                  <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
+                    <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={1}
+                      className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                   </td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-2 py-1.5 text-center">
                     <select value={item.status} onChange={e => updateItem(item.id, { status: e.target.value as FmeaItem['status'] })} className="border border-slate-200 rounded px-1 py-0.5 text-xs">
                       <option value="draft">draft</option>
                       <option value="in_review">검토중</option>
                       <option value="approved">승인</option>
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2 py-1.5">
                     <select value={item.safety_goal_id ?? ''} onChange={e => updateItem(item.id, { safety_goal_id: e.target.value || null })}
-                      className="w-full border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      className="border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
                       <option value="">-</option>
                       {sgs.map(sg => <option key={sg.id} value={sg.id}>{sg.sg_id}</option>)}
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2 py-1.5">
                     <select value={item.safety_mechanism_id ?? ''} onChange={e => updateItem(item.id, { safety_mechanism_id: e.target.value || null })}
-                      className="w-full border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      className="border border-slate-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400">
                       <option value="">-</option>
                       {sms.map(sm => <option key={sm.id} value={sm.id}>{sm.sm_id}</option>)}
                     </select>
                   </td>
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-2 py-1.5 text-center">
                     <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
                       className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
                       {analyzingId === item.id ? '...' : '🤖'}
