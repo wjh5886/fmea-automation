@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <nav className="bg-slate-900 text-white px-6 py-3 flex items-center gap-6 shrink-0">
           <Link href="/" className="text-lg font-bold tracking-tight">⚙ FMEA Auto</Link>
           <Link href="/projects" className="text-sm text-slate-300 hover:text-white transition-colors">프로젝트</Link>
+          <Link href="/guide" className="text-sm text-slate-300 hover:text-white transition-colors">S/O/D 기준표</Link>
         </nav>
         <main className="flex-1">{children}</main>
       </body>

@@ -94,6 +94,8 @@ export default function FmeaTablePage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [analyzingAll, setAnalyzingAll] = useState(false)
+  const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null)
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [colWidths, setColWidths] = useState<Record<number, number>>({})
   const resizeRef = useRef<{ col: number; startX: number; startW: number } | null>(null)
@@ -118,20 +120,43 @@ export default function FmeaTablePage() {
 
   const cw = (col: number, def: number) => colWidths[col] ?? def
 
+  const fetchAllItems = async (projectId: string) => {
+    const PAGE = 1000
+    const { count } = await supabase
+      .from('fmea_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_id', projectId)
+    if (!count) return []
+    const pages = Math.ceil(count / PAGE)
+    const results = await Promise.all(
+      Array.from({ length: pages }, (_, i) =>
+        supabase
+          .from('fmea_items')
+          .select('*,sw_units(name)')
+          .eq('project_id', projectId)
+          .order('item_no')
+          .order('failure_mode')
+          .order('id')
+          .range(i * PAGE, (i + 1) * PAGE - 1)
+      )
+    )
+    return results.flatMap(r => r.data ?? []) as FmeaItem[]
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData }, { data: itemData }] = await Promise.all([
+    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
       supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
       supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
-      supabase.from('fmea_items').select('*,sw_units(name)').eq('project_id', id).order('item_no').order('failure_mode'),
     ])
+    const allItems = await fetchAllItems(id)
     setProject(proj)
     setUnits(unitData ?? [])
     setSgs(sgData ?? [])
     setSms(smData ?? [])
-    setItems(itemData ?? [])
+    setItems(allItems)
     setLoading(false)
   }, [id])
 
@@ -145,10 +170,11 @@ export default function FmeaTablePage() {
   const analyzeItem = async (item: FmeaItem) => {
     setAnalyzingId(item.id)
     try {
+      const swName = (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? ''
       const res = await fetch('/api/ai-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ item }),
+        body: JSON.stringify({ item, sw_unit_name: swName, project_name: project?.name }),
       })
       const result = await res.json()
       if (result.severity) {
@@ -156,6 +182,7 @@ export default function FmeaTablePage() {
           severity: result.severity,
           occurrence: result.occurrence,
           detection: result.detection,
+          effect_system: result.effect_system || item.effect_system,
           preventive_action: result.preventive_action,
           detection_action: result.detection_action,
           ai_generated: true,
@@ -168,12 +195,77 @@ export default function FmeaTablePage() {
   }
 
   const analyzeAll = async () => {
-    setAnalyzingAll(true)
     const unfilled = filtered.filter(i => !i.severity || !i.occurrence || !i.detection)
-    for (const item of unfilled) {
-      await analyzeItem(item)
+    if (unfilled.length === 0) return
+    setAnalyzingAll(true)
+    setAnalyzeProgress({ done: 0, total: unfilled.length })
+
+    setAnalyzeError(null)
+    const BATCH = 5
+    const CONCURRENT = 3
+    const batches: FmeaItem[][] = []
+    for (let i = 0; i < unfilled.length; i += BATCH) batches.push(unfilled.slice(i, i + BATCH))
+
+    let done = 0
+    for (let i = 0; i < batches.length; i += CONCURRENT) {
+      const chunk = batches.slice(i, i + CONCURRENT)
+      await Promise.all(chunk.map(async (batch) => {
+        const payload = batch.map(item => ({
+          id: item.id,
+          sw_unit_name: (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '',
+          category: item.category ?? '',
+          variable_name: item.variable_name ?? '',
+          variable_type: item.variable_type ?? null,
+          failure_mode: item.failure_mode ?? '',
+          failure_detail: item.failure_detail ?? null,
+          effect_module: item.effect_module ?? null,
+          signal_range: item.signal_range ?? null,
+        }))
+        try {
+          const res = await fetch('/api/ai-analyze-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: payload, project_name: project?.name }),
+          })
+          const data = await res.json()
+          if (data.results) {
+            // Bulk DB update
+            await Promise.all(
+              (data.results as { id: string; severity: number; occurrence: number; detection: number; effect_system: string; preventive_action: string; detection_action: string }[]).map(r =>
+                supabase.from('fmea_items').update({
+                  severity: r.severity,
+                  occurrence: r.occurrence,
+                  detection: r.detection,
+                  effect_system: r.effect_system || undefined,
+                  preventive_action: r.preventive_action || undefined,
+                  detection_action: r.detection_action || undefined,
+                  ai_generated: true,
+                  status: 'in_review',
+                }).eq('id', r.id)
+              )
+            )
+            // Update local state in bulk
+            setItems(prev => {
+              const map = Object.fromEntries(
+                (data.results as { id: string; severity: number; occurrence: number; detection: number; effect_system: string; preventive_action: string; detection_action: string }[]).map(r => [r.id, r])
+              )
+              return prev.map(it => map[it.id]
+                ? { ...it, ...map[it.id], ai_generated: true, status: 'in_review' as FmeaItem['status'] }
+                : it)
+            })
+            done += data.results.length
+            setAnalyzeProgress({ done, total: unfilled.length })
+          }
+        } catch (e) {
+          setAnalyzeError(`API 오류: ${e}`)
+          done += batch.length
+          setAnalyzeProgress({ done, total: unfilled.length })
+        }
+      }))
     }
+
     setAnalyzingAll(false)
+    setAnalyzeProgress(null)
   }
 
   const exportCsv = () => {
@@ -245,8 +337,25 @@ export default function FmeaTablePage() {
           <option value="approved">승인됨</option>
         </select>
 
-        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50">
-          {analyzingAll ? '분석 중...' : '🤖 AI 전체분석'}
+        {analyzeError && (
+          <span className="text-xs text-red-500 bg-red-50 border border-red-200 rounded px-2 py-1 max-w-xs truncate" title={analyzeError}>
+            ⚠ {analyzeError}
+          </span>
+        )}
+        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+          {analyzingAll && analyzeProgress ? (
+            <>
+              <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {analyzeProgress.done}/{analyzeProgress.total}
+            </>
+          ) : analyzingAll ? (
+            <>
+              <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              준비 중...
+            </>
+          ) : (
+            <>🤖 AI 전체분석 ({filtered.filter(i => !i.severity || !i.occurrence || !i.detection).length}개)</>
+          )}
         </button>
         <button onClick={exportCsv} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">📥 CSV</button>
         <button onClick={() => setShowImport(true)} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">📋 JSON 가져오기</button>
@@ -263,14 +372,15 @@ export default function FmeaTablePage() {
           </button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="text-xs" style={{ tableLayout: 'fixed', whiteSpace: 'nowrap', width: 'max-content' }}>
+        <>
+        <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 bg-white" style={{ maxHeight: 'calc(100vh - 11rem)' }}>
+          <table className="text-xs" style={{ tableLayout: 'fixed', width: 'max-content' }}>
             <colgroup>
               {[48,140,90,160,80,180,80,160,160,160,160,80,50,160,50,180,120,160,50,60,50,160,50,50,50,60,100,120,120,100,90,50].map((w,i) => (
                 <col key={i} style={{ width: cw(i, w) }} />
               ))}
             </colgroup>
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
               <tr>
                 {([
                   [0,'No','border-r border-slate-200'],
@@ -306,83 +416,94 @@ export default function FmeaTablePage() {
                   [30,'상태','border-l border-slate-200 text-center'],
                   [31,'AI','text-center'],
                 ] as [number, string, string][]).map(([col, label, cls]) => (
-                  <th key={col} className={`px-2 py-2 font-medium text-slate-600 text-left overflow-hidden relative select-none ${cls}`}
+                  <th key={col} className={`px-2 py-2 font-medium text-slate-600 text-left overflow-hidden relative select-none group/th ${cls}`}
                     style={{ width: cw(col, 0) }}>
                     <span className="block overflow-hidden text-ellipsis">{label}</span>
                     <div
                       onMouseDown={e => startResize(col, e)}
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 z-10"
-                    />
+                      className="absolute right-0 top-0 h-full w-3 cursor-col-resize z-10 flex items-center justify-center"
+                    >
+                      <div className="w-px h-4 bg-slate-300 group-hover/th:bg-blue-400 group-hover/th:w-0.5 transition-all" />
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map(item => {
+              {filtered.map((item, idx) => {
                 const swName = (item as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '-'
-                const T = ({ v, ml, cls }: { v: string | null | undefined, ml?: boolean, cls?: string }) => (
-                  <td className={`px-2 py-1.5 text-slate-600 overflow-hidden align-top ${cls ?? ''}`}
-                    style={{ whiteSpace: ml ? 'pre-line' : 'nowrap', overflow: 'hidden', textOverflow: ml ? 'clip' : 'ellipsis' }}
-                    title={v ?? ''}>
-                    {v ?? '-'}
+                const T = ({ v, cls }: { v: string | null | undefined, cls?: string }) => (
+                  <td className={`px-2 py-1.5 text-slate-600 align-top ${cls ?? ''}`} title={v ?? ''}>
+                    <div style={{ maxHeight: '4.5rem', overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {v ?? '-'}
+                    </div>
+                  </td>
+                )
+                const Mono = ({ v, cls }: { v: string | null | undefined, cls?: string }) => (
+                  <td className={`px-2 py-1.5 font-mono text-slate-700 align-top ${cls ?? ''}`} title={v ?? ''}>
+                    <div style={{ maxHeight: '4.5rem', overflow: 'hidden', wordBreak: 'break-all' }}>
+                      {v ?? '-'}
+                    </div>
                   </td>
                 )
                 return (
                   <tr key={item.id} className={`hover:bg-slate-50 ${!item.severity ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-2 py-1.5 text-slate-500 font-mono overflow-hidden border-r border-slate-100" style={{ textOverflow: 'ellipsis' }}>{item.item_no}</td>
-                    <td className="px-2 py-1.5 font-mono text-slate-700 overflow-hidden" style={{ textOverflow: 'ellipsis' }} title={swName}>{swName}</td>
-                    <td className="px-2 py-1.5 overflow-hidden">
+                    <td className="px-2 py-1.5 text-slate-500 font-mono border-r border-slate-100 whitespace-nowrap">{idx + 1}</td>
+                    <Mono v={swName} />
+                    <td className="px-2 py-1.5 align-top">
                       <span className={`px-1 py-0.5 rounded ${item.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                         {item.category === 'External' ? 'External' : item.category === 'Internal' ? 'Internal' : '-'}
                       </span>
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-slate-700 overflow-hidden" style={{ textOverflow: 'ellipsis' }} title={item.variable_name}>{item.variable_name}</td>
-                    <td className="px-2 py-1.5 text-slate-500 overflow-hidden" style={{ textOverflow: 'ellipsis' }}>{item.variable_type ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-slate-500 overflow-hidden" style={{ whiteSpace: 'pre-line', textOverflow: 'ellipsis' }} title={item.signal_range ?? ''}>{item.signal_range ?? '-'}</td>
-                    <td className="px-2 py-1.5 border-l border-slate-100 overflow-hidden">
+                    <Mono v={item.variable_name} />
+                    <td className="px-2 py-1.5 text-slate-500 align-top whitespace-nowrap overflow-hidden" style={{ textOverflow: 'ellipsis' }}>{item.variable_type ?? '-'}</td>
+                    <T v={item.signal_range} />
+                    <td className="px-2 py-1.5 border-l border-slate-100 align-top whitespace-nowrap">
                       <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
                     </td>
-                    <T v={item.failure_detail} ml />
-                    <T v={item.effect_module} ml />
-                    <T v={item.potential_cause} ml />
-                    <T v={item.effect_system} ml />
+                    <T v={item.failure_detail} />
+                    <T v={item.effect_module} />
+                    <T v={item.potential_cause} />
+                    <T v={item.effect_system} />
                     <T v={item.effect_safety_goal} />
-                    <td className="px-2 py-1.5 text-center border-l border-slate-100"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
-                    <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
-                      <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={1}
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100 align-top"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
+                    <td className="px-2 py-1.5 align-top">
+                      <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={2}
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
-                    <td className="px-2 py-1.5 text-center"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
-                    <T v={item.safety_mechanism_text} ml />
-                    <T v={item.test_method} ml />
-                    <td className="px-2 py-1.5" style={{ whiteSpace: 'normal' }}>
-                      <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={1}
+                    <td className="px-2 py-1.5 text-center align-top"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
+                    <T v={item.safety_mechanism_text} />
+                    <T v={item.test_method} />
+                    <td className="px-2 py-1.5 align-top">
+                      <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={2}
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
-                    <td className="px-2 py-1.5 text-center"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
-                    <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn} /></td>
-                    <td className="px-2 py-1.5 text-center border-l border-slate-100">
+                    <td className="px-2 py-1.5 text-center align-top"><NumInput value={item.detection} onChange={v => updateItem(item.id, { detection: v })} /></td>
+                    <td className="px-2 py-1.5 text-center align-top"><RpnBadge rpn={item.rpn} /></td>
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100 align-top">
                       <span className={`px-1 py-0.5 rounded text-xs font-medium ${item.cm_required === true ? 'bg-orange-100 text-orange-700' : item.cm_required === false ? 'bg-slate-100 text-slate-500' : 'text-slate-300'}`}>
                         {item.cm_required === true ? 'Y' : item.cm_required === false ? 'N' : '-'}
                       </span>
                     </td>
-                    <T v={item.countermeasure} ml />
-                    <td className="px-2 py-1.5 text-center text-slate-500">{item.severity_after ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-center text-slate-500">{item.occurrence_after ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-center text-slate-500">{item.detection_after ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-center"><RpnBadge rpn={item.rpn_after} /></td>
-                    <td className="px-2 py-1.5 text-slate-500 border-l border-slate-100">{item.target_date ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-slate-500">{item.responsibility ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-slate-500 max-w-[8rem] truncate" title={item.reference_result ?? ''}>{item.reference_result ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-slate-500">{item.finish_date ?? '-'}</td>
-                    <td className="px-2 py-1.5 text-center border-l border-slate-100">
+                    <T v={item.countermeasure} />
+                    <td className="px-2 py-1.5 text-center text-slate-500 align-top whitespace-nowrap">{item.severity_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-slate-500 align-top whitespace-nowrap">{item.occurrence_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-slate-500 align-top whitespace-nowrap">{item.detection_after ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center align-top"><RpnBadge rpn={item.rpn_after} /></td>
+                    <td className="px-2 py-1.5 text-slate-500 border-l border-slate-100 align-top whitespace-nowrap">{item.target_date ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500 align-top whitespace-nowrap">{item.responsibility ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-slate-500 align-top" title={item.reference_result ?? ''}>
+                      <div style={{ maxHeight: '4.5rem', overflow: 'hidden', wordBreak: 'break-word' }}>{item.reference_result ?? '-'}</div>
+                    </td>
+                    <td className="px-2 py-1.5 text-slate-500 align-top whitespace-nowrap">{item.finish_date ?? '-'}</td>
+                    <td className="px-2 py-1.5 text-center border-l border-slate-100 align-top">
                       <select value={item.status} onChange={e => updateItem(item.id, { status: e.target.value as FmeaItem['status'] })} className="border border-slate-200 rounded px-1 py-0.5 text-xs">
                         <option value="draft">draft</option>
                         <option value="in_review">검토중</option>
                         <option value="approved">승인</option>
                       </select>
                     </td>
-                    <td className="px-2 py-1.5 text-center">
+                    <td className="px-2 py-1.5 text-center align-top">
                       <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
                         className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
                         {analyzingId === item.id ? '...' : '🤖'}
@@ -394,6 +515,7 @@ export default function FmeaTablePage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   )

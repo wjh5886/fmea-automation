@@ -4,31 +4,36 @@ import Anthropic from '@anthropic-ai/sdk'
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
-  const { item } = await req.json()
+  const { item, sw_unit_name, project_name } = await req.json()
 
-  const prompt = `You are an automotive SW FMEA expert. Analyze the following FMEA item and provide ratings.
+  const prompt = `You are an automotive SW FMEA expert specializing in Steer-by-Wire (SBW) systems.
 
-SW Unit: ${item.sw_unit_id ?? 'Unknown'}
-Variable: ${item.variable_name}
-Type: ${item.variable_type ?? 'Unknown'}
+Project: ${project_name ?? 'SBW SW FMEA'} (ISO 26262 ASIL-D)
+SBW is safety-critical: steering failures can cause loss of vehicle control.
+
+SW Unit: ${sw_unit_name ?? item.sw_unit_id}
+Category: ${item.category ?? 'N/A'}
+Variable: ${item.variable_name} (${item.variable_type ?? 'unknown'})
+Signal Range: ${item.signal_range ?? 'N/A'}
 Failure Mode: ${item.failure_mode}
 Failure Detail: ${item.failure_detail ?? 'N/A'}
 Effect on Module: ${item.effect_module ?? 'N/A'}
 Effect on System: ${item.effect_system ?? 'N/A'}
 Effect on Safety Goal: ${item.effect_safety_goal ?? 'N/A'}
 
-Provide ratings (1-10 scale) and actions following AIAG-VDA FMEA methodology:
-- Severity (S): Impact on system/user (10=hazardous, 1=no effect)
-- Occurrence (O): Likelihood of failure cause (10=very high, 1=remote)
-- Detection (D): Ability to detect before delivery (10=no detection, 1=certain detection)
+Rate following AIAG-VDA FMEA (1-10):
+- Severity: 10=crash/injury, 7-9=loss of SBW function, 4-6=degraded, 1-3=minor
+- Occurrence: 10=frequent, 2-4=well-designed SW, 1=extremely unlikely
+- Detection: 1-3=strong runtime monitoring, 4-6=partial, 10=none
 
-Return ONLY valid JSON (no markdown, no explanation):
+Return ONLY valid JSON (no markdown):
 {
-  "severity": <number 1-10>,
-  "occurrence": <number 1-10>,
-  "detection": <number 1-10>,
-  "preventive_action": "<specific preventive action in Korean>",
-  "detection_action": "<specific detection/verification action in Korean>",
+  "severity": <1-10>,
+  "occurrence": <1-10>,
+  "detection": <1-10>,
+  "effect_system": "<vehicle-level effect in Korean, 1 sentence>",
+  "preventive_action": "<design control in Korean>",
+  "detection_action": "<diagnostic method in Korean>",
   "reasoning": "<brief reasoning in Korean>"
 }`
 
@@ -41,7 +46,6 @@ Return ONLY valid JSON (no markdown, no explanation):
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
     const result = JSON.parse(text)
-
     return NextResponse.json(result)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

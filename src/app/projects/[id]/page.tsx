@@ -35,23 +35,23 @@ export default function ProjectDetailPage() {
   const [addingUnit, setAddingUnit] = useState(false)
 
   const load = useCallback(async () => {
-    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData }, { data: statData }] = await Promise.all([
+    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData },
+      { count: total }, { count: filled }, { count: high_rpn }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
       supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
       supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
-      supabase.from('fmea_items').select('id,severity,occurrence,detection,rpn').eq('project_id', id),
+      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id),
+      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id)
+        .not('severity', 'is', null).not('occurrence', 'is', null).not('detection', 'is', null),
+      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id)
+        .gte('rpn', 100),
     ])
     setProject(proj)
     setUnits(unitData ?? [])
     setSgs(sgData ?? [])
     setSms(smData ?? [])
-    const items = statData ?? []
-    setStats({
-      total: items.length,
-      filled: items.filter((i: StatItem) => i.severity && i.occurrence && i.detection).length,
-      high_rpn: items.filter((i: StatItem) => (i.rpn ?? 0) >= 100).length,
-    })
+    setStats({ total: total ?? 0, filled: filled ?? 0, high_rpn: high_rpn ?? 0 })
   }, [id])
 
   useEffect(() => { load() }, [load])
