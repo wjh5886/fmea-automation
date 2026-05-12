@@ -92,6 +92,8 @@ export default function FmeaTablePage() {
   const [filterUnit, setFilterUnit] = useState('')
   const [filterMode, setFilterMode] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterSearch, setFilterSearch] = useState('')
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [analyzingAll, setAnalyzingAll] = useState(false)
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null)
@@ -309,7 +311,13 @@ export default function FmeaTablePage() {
     if (filterMode && i.failure_mode !== filterMode) return false
     if (filterStatus === 'unfilled' && i.severity && i.occurrence && i.detection) return false
     if (filterStatus === 'high' && (i.rpn ?? 0) < 100) return false
+    if (filterStatus === 'veryhigh' && (i.rpn ?? 0) < 200) return false
     if (filterStatus === 'approved' && i.status !== 'approved') return false
+    if (filterCategory && i.category !== filterCategory) return false
+    if (filterSearch) {
+      const q = filterSearch.toLowerCase()
+      if (!(i.variable_name ?? '').toLowerCase().includes(q)) return false
+    }
     return true
   })
 
@@ -330,7 +338,8 @@ export default function FmeaTablePage() {
       </div>
 
       {/* 툴바 */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* 통계 */}
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <span className="font-medium">{filtered.length}/{items.length}개</span>
           <span className="text-slate-300">|</span>
@@ -340,6 +349,36 @@ export default function FmeaTablePage() {
         </div>
         <div className="flex-1" />
 
+        {/* 변수명 검색 */}
+        <input
+          type="text"
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+          placeholder="변수명 검색..."
+          className="border border-slate-200 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+
+        {/* 카테고리 토글 */}
+        <div className="flex rounded border border-slate-200 overflow-hidden text-sm">
+          {(['', 'Internal', 'External'] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-2 py-1 ${filterCategory === cat ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+            >
+              {cat === '' ? '전체' : cat}
+            </button>
+          ))}
+        </div>
+
+        {/* 미입력만 빠른 버튼 */}
+        <button
+          onClick={() => setFilterStatus(filterStatus === 'unfilled' ? '' : 'unfilled')}
+          className={`px-2 py-1 rounded text-sm border ${filterStatus === 'unfilled' ? 'bg-red-500 text-white border-red-500' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+        >
+          미입력만
+        </button>
+
         <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)} className="border border-slate-200 rounded px-2 py-1 text-sm">
           <option value="">전체 SW Unit</option>
           {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -348,10 +387,14 @@ export default function FmeaTablePage() {
           <option value="">전체 모드</option>
           {FAILURE_MODES.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-slate-200 rounded px-2 py-1 text-sm">
+        <select
+          value={filterStatus === 'unfilled' ? '' : filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="border border-slate-200 rounded px-2 py-1 text-sm"
+        >
           <option value="">전체</option>
-          <option value="unfilled">미입력만</option>
           <option value="high">고위험(≥100)</option>
+          <option value="veryhigh">매우고위험(≥200)</option>
           <option value="approved">승인됨</option>
         </select>
 
