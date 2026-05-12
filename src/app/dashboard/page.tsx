@@ -13,8 +13,30 @@ type ProjectStat = {
   maxRpn: number
 }
 
+type FmStat = {
+  mode: string
+  count: number
+  avgRpn: number
+  highRisk: number
+}
+
+const FM_ORDER = ['MORE', 'LESS', 'CORRUPT', 'STUCK', 'EARLY', 'LATE', 'ERRATIC', 'N/A']
+
+const FM_COLOR: Record<string, string> = {
+  MORE:    'bg-orange-400',
+  LESS:    'bg-yellow-400',
+  CORRUPT: 'bg-red-500',
+  STUCK:   'bg-red-400',
+  EARLY:   'bg-blue-400',
+  LATE:    'bg-blue-300',
+  ERRATIC: 'bg-purple-400',
+  'N/A':   'bg-slate-300',
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<ProjectStat[]>([])
+  const [fmStats, setFmStats] = useState<FmStat[]>([])
+  const [selectedProject, setSelectedProject] = useState<string>('__all__')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,10 +45,12 @@ export default function DashboardPage() {
       if (!projects?.length) { setLoading(false); return }
 
       const results: ProjectStat[] = []
+      const fmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
+
       for (const project of projects) {
         const { data: items } = await supabase
           .from('fmea_items')
-          .select('severity,occurrence,detection,rpn')
+          .select('severity,occurrence,detection,rpn,failure_mode')
           .eq('project_id', project.id)
 
         if (!items) continue
@@ -40,16 +64,71 @@ export default function DashboardPage() {
           avgRpn: rpns.length ? Math.round(rpns.reduce((a, b) => a + b, 0) / rpns.length) : 0,
           maxRpn: rpns.length ? Math.max(...rpns) : 0,
         })
+
+        for (const item of items) {
+          const mode = item.failure_mode ?? 'N/A'
+          if (!fmMap[mode]) fmMap[mode] = { count: 0, rpnSum: 0, highRisk: 0 }
+          fmMap[mode].count++
+          if (item.rpn) {
+            fmMap[mode].rpnSum += item.rpn
+            if (item.rpn >= 100) fmMap[mode].highRisk++
+          }
+        }
       }
+
       setStats(results)
+      setFmStats(
+        FM_ORDER
+          .filter(m => fmMap[m])
+          .map(m => ({
+            mode: m,
+            count: fmMap[m].count,
+            avgRpn: fmMap[m].count ? Math.round(fmMap[m].rpnSum / fmMap[m].count) : 0,
+            highRisk: fmMap[m].highRisk,
+          }))
+      )
       setLoading(false)
     }
     load()
   }, [])
 
+  // per-project FM stats
+  const [projFmStats, setProjFmStats] = useState<FmStat[]>([])
+  useEffect(() => {
+    if (selectedProject === '__all__') { setProjFmStats(fmStats); return }
+    async function loadProj() {
+      const { data: items } = await supabase
+        .from('fmea_items')
+        .select('failure_mode,rpn')
+        .eq('project_id', selectedProject)
+      if (!items) return
+      const fmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
+      for (const item of items) {
+        const mode = item.failure_mode ?? 'N/A'
+        if (!fmMap[mode]) fmMap[mode] = { count: 0, rpnSum: 0, highRisk: 0 }
+        fmMap[mode].count++
+        if (item.rpn) { fmMap[mode].rpnSum += item.rpn; if (item.rpn >= 100) fmMap[mode].highRisk++ }
+      }
+      setProjFmStats(
+        FM_ORDER
+          .filter(m => fmMap[m])
+          .map(m => ({
+            mode: m,
+            count: fmMap[m].count,
+            avgRpn: fmMap[m].count ? Math.round(fmMap[m].rpnSum / fmMap[m].count) : 0,
+            highRisk: fmMap[m].highRisk,
+          }))
+      )
+    }
+    loadProj()
+  }, [selectedProject, fmStats])
+
   const totalItems = stats.reduce((s, p) => s + p.total, 0)
   const totalFilled = stats.reduce((s, p) => s + p.filled, 0)
   const totalHigh = stats.reduce((s, p) => s + p.highRisk, 0)
+
+  const displayFm = selectedProject === '__all__' ? fmStats : projFmStats
+  const maxFmCount = Math.max(...displayFm.map(f => f.count), 1)
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
@@ -87,7 +166,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 프로젝트별 현황 */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -148,6 +227,60 @@ export default function DashboardPage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Failure Mode 분포 */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold text-slate-800">Failure Mode 분포</h2>
+              <select
+                value={selectedProject}
+                onChange={e => setSelectedProject(e.target.value)}
+                className="border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                <option value="__all__">전체 프로젝트</option>
+                {stats.map(({ project }) => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              {displayFm.map(({ mode, count, avgRpn, highRisk }) => (
+                <div key={mode} className="flex items-center gap-3">
+                  <div className="w-16 text-xs font-mono font-medium text-slate-700 text-right shrink-0">{mode}</div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${FM_COLOR[mode] ?? 'bg-slate-400'} transition-all duration-500`}
+                        style={{ width: `${(count / maxFmCount) * 100}%` }}
+                      />
+                    </div>
+                    <span className="w-14 text-xs text-slate-600 text-right shrink-0">{count.toLocaleString()}개</span>
+                  </div>
+                  <div className="w-24 flex gap-2 text-xs shrink-0">
+                    <span className="text-slate-400">avg</span>
+                    <span className={`font-medium ${avgRpn >= 200 ? 'text-red-600' : avgRpn >= 100 ? 'text-orange-500' : 'text-slate-600'}`}>
+                      {avgRpn || '-'}
+                    </span>
+                    {highRisk > 0 && (
+                      <span className="text-red-400 ml-auto">⚠ {highRisk}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 범례 */}
+            <div className="flex flex-wrap gap-3 mt-5 pt-4 border-t border-slate-100">
+              {FM_ORDER.filter(m => displayFm.find(f => f.mode === m)).map(m => (
+                <div key={m} className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <div className={`w-3 h-3 rounded-full ${FM_COLOR[m] ?? 'bg-slate-300'}`} />
+                  {m}
+                </div>
+              ))}
+              <div className="ml-auto text-xs text-slate-400">⚠ = 고위험(≥100) 수</div>
+            </div>
           </div>
         </>
       )}
