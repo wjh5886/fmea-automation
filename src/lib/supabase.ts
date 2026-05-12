@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+// 브라우저에서는 로컬 서버를 통해 프록시 (사내망 방화벽 우회)
+const supabaseUrl = typeof window !== 'undefined'
+  ? `${window.location.origin}/sb`
+  : process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)

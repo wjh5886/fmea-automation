@@ -17,9 +17,14 @@ export default function ProjectsPage() {
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">FMEA 프로젝트</h1>
-        <Link href="/projects/new" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
-          + 새 프로젝트
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/projects/import" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-500 transition-colors">
+            ARXML 가져오기
+          </Link>
+          <Link href="/projects/new" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
+            + 새 프로젝트
+          </Link>
+        </div>
       </div>
 
       {loading ? (

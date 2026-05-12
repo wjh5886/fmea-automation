@@ -163,8 +163,26 @@ export default function FmeaTablePage() {
   useEffect(() => { load() }, [load])
 
   const updateItem = async (itemId: string, patch: Partial<FmeaItem>) => {
-    setItems(prev => prev.map(i => i.id === itemId ? { ...i, ...patch } : i))
-    await supabase.from('fmea_items').update(patch).eq('id', itemId)
+    setItems(prev => prev.map(i => {
+      if (i.id !== itemId) return i
+      const merged = { ...i, ...patch }
+      const s = merged.severity ?? 0
+      const o = merged.occurrence ?? 0
+      const d = merged.detection ?? 0
+      merged.rpn = (s && o && d) ? s * o * d : null
+      return merged
+    }))
+    const item = items.find(i => i.id === itemId)
+    if (item) {
+      const merged = { ...item, ...patch }
+      const s = merged.severity ?? 0
+      const o = merged.occurrence ?? 0
+      const d = merged.detection ?? 0
+      const rpn = (s && o && d) ? s * o * d : null
+      await supabase.from('fmea_items').update({ ...patch, rpn }).eq('id', itemId)
+    } else {
+      await supabase.from('fmea_items').update(patch).eq('id', itemId)
+    }
   }
 
   const analyzeItem = async (item: FmeaItem) => {
@@ -339,7 +357,7 @@ export default function FmeaTablePage() {
 
         {analyzeError && (
           <span className="text-xs text-red-500 bg-red-50 border border-red-200 rounded px-2 py-1 max-w-xs truncate" title={analyzeError}>
-            ⚠ {analyzeError}
+            {analyzeError}
           </span>
         )}
         <button onClick={analyzeAll} disabled={analyzingAll} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
@@ -354,11 +372,11 @@ export default function FmeaTablePage() {
               준비 중...
             </>
           ) : (
-            <>🤖 AI 전체분석 ({filtered.filter(i => !i.severity || !i.occurrence || !i.detection).length}개)</>
+            <>AI 전체분석 ({filtered.filter(i => !i.severity || !i.occurrence || !i.detection).length}개)</>
           )}
         </button>
-        <button onClick={exportCsv} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">📥 CSV</button>
-        <button onClick={() => setShowImport(true)} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">📋 JSON 가져오기</button>
+        <button onClick={exportCsv} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">CSV 내보내기</button>
+        <button onClick={() => setShowImport(true)} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">JSON 가져오기</button>
       </div>
 
       {/* 테이블 */}
@@ -368,7 +386,7 @@ export default function FmeaTablePage() {
         <div className="text-center py-16 text-slate-400">
           <p className="mb-3">항목이 없습니다.</p>
           <button onClick={() => setShowImport(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-            📋 JSON으로 데이터 가져오기
+            JSON으로 데이터 가져오기
           </button>
         </div>
       ) : (
@@ -461,11 +479,23 @@ export default function FmeaTablePage() {
                     <td className="px-2 py-1.5 border-l border-slate-100 align-top whitespace-nowrap">
                       <span className="bg-slate-100 text-slate-600 px-1 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span>
                     </td>
-                    <T v={item.failure_detail} />
-                    <T v={item.effect_module} />
+                    <td className="px-2 py-1.5 align-top">
+                      <textarea value={item.failure_detail ?? ''} onChange={e => updateItem(item.id, { failure_detail: e.target.value })} rows={2}
+                        className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    </td>
+                    <td className="px-2 py-1.5 align-top">
+                      <textarea value={item.effect_module ?? ''} onChange={e => updateItem(item.id, { effect_module: e.target.value })} rows={2}
+                        className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    </td>
                     <T v={item.potential_cause} />
-                    <T v={item.effect_system} />
-                    <T v={item.effect_safety_goal} />
+                    <td className="px-2 py-1.5 align-top">
+                      <textarea value={item.effect_system ?? ''} onChange={e => updateItem(item.id, { effect_system: e.target.value })} rows={2}
+                        className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                    </td>
+                    <td className="px-2 py-1.5 align-top">
+                      <input value={item.effect_safety_goal ?? ''} onChange={e => updateItem(item.id, { effect_safety_goal: e.target.value })}
+                        className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400" placeholder="SG1/SG2/SG3" />
+                    </td>
                     <td className="px-2 py-1.5 text-center border-l border-slate-100 align-top"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
                     <td className="px-2 py-1.5 align-top">
                       <textarea value={item.preventive_action ?? ''} onChange={e => updateItem(item.id, { preventive_action: e.target.value })} rows={2}
@@ -506,7 +536,7 @@ export default function FmeaTablePage() {
                     <td className="px-2 py-1.5 text-center align-top">
                       <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
                         className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
-                        {analyzingId === item.id ? '...' : '🤖'}
+                        {analyzingId === item.id ? '...' : 'AI'}
                       </button>
                     </td>
                   </tr>
