@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -46,7 +46,12 @@ export default function ImportPage() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [job, setJob] = useState<{ status: string; progress: number; logs: string[]; project_id?: string; error?: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [backendOk, setBackendOk] = useState<boolean | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    fetch(`${BACKEND}/health`).then(r => setBackendOk(r.ok)).catch(() => setBackendOk(false))
+  }, [])
 
   const startPoll = useCallback((id: string) => {
     pollRef.current = setInterval(async () => {
@@ -81,8 +86,8 @@ export default function ImportPage() {
       setJobId(job_id)
       setJob({ status: 'running', progress: 0, logs: [] })
       startPoll(job_id)
-    } catch (err) {
-      alert(`서버 연결 실패\n백엔드(포트 8000)가 실행 중인지 확인해 주세요.`)
+    } catch {
+      setBackendOk(false)
     } finally {
       setSubmitting(false)
     }
@@ -159,6 +164,23 @@ export default function ImportPage() {
         <Link href="/projects" className="text-slate-400 hover:text-slate-600 text-sm">← 프로젝트</Link>
         <span className="text-slate-300">/</span>
         <h1 className="text-2xl font-bold text-slate-900">ARXML 자동 가져오기</h1>
+      </div>
+
+      {/* 백엔드 상태 */}
+      <div className={`flex items-center gap-2 rounded-xl px-4 py-3 mb-4 text-sm border ${
+        backendOk === null ? 'bg-slate-50 border-slate-200 text-slate-500' :
+        backendOk ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+        'bg-red-50 border-red-200 text-red-700'
+      }`}>
+        <div className={`w-2 h-2 rounded-full shrink-0 ${
+          backendOk === null ? 'bg-slate-400 animate-pulse' :
+          backendOk ? 'bg-emerald-500' : 'bg-red-500'
+        }`} />
+        {backendOk === null && '백엔드 연결 확인 중...'}
+        {backendOk === true && '백엔드 서버 연결됨 — 파일 업로드 가능'}
+        {backendOk === false && (
+          <span>백엔드 서버 연결 실패 — <code className="bg-red-100 px-1 rounded">start_local.bat</code> 실행 후 새로고침하세요</span>
+        )}
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-700">
@@ -265,7 +287,7 @@ export default function ImportPage() {
             className="flex-1 border border-slate-300 rounded-lg py-2.5 text-sm hover:bg-slate-50">
             취소
           </button>
-          <button type="submit" disabled={!arxmlFile || !projectName || submitting}
+          <button type="submit" disabled={!arxmlFile || !projectName || submitting || !backendOk}
             className="flex-1 bg-slate-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             {submitting ? '시작 중...' : '자동 생성 시작'}
           </button>
