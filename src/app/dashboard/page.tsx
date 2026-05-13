@@ -33,9 +33,21 @@ const FM_COLOR: Record<string, string> = {
   'N/A':   'bg-slate-300',
 }
 
+function buildFmStats(fmMap: Record<string, { count: number; rpnSum: number; highRisk: number }>): FmStat[] {
+  return FM_ORDER
+    .filter(m => fmMap[m])
+    .map(m => ({
+      mode: m,
+      count: fmMap[m].count,
+      avgRpn: fmMap[m].count ? Math.round(fmMap[m].rpnSum / fmMap[m].count) : 0,
+      highRisk: fmMap[m].highRisk,
+    }))
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<ProjectStat[]>([])
-  const [fmStats, setFmStats] = useState<FmStat[]>([])
+  const [fmAll, setFmAll] = useState<FmStat[]>([])
+  const [fmByProject, setFmByProject] = useState<Record<string, FmStat[]>>({})
   const [selectedProject, setSelectedProject] = useState<string>('__all__')
   const [loading, setLoading] = useState(true)
 
@@ -45,7 +57,8 @@ export default function DashboardPage() {
       if (!projects?.length) { setLoading(false); return }
 
       const results: ProjectStat[] = []
-      const fmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
+      const allFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
+      const byProject: Record<string, FmStat[]> = {}
 
       for (const project of projects) {
         const { data: items } = await supabase
@@ -65,69 +78,31 @@ export default function DashboardPage() {
           maxRpn: rpns.length ? Math.max(...rpns) : 0,
         })
 
+        const projFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
         for (const item of items) {
           const mode = item.failure_mode ?? 'N/A'
-          if (!fmMap[mode]) fmMap[mode] = { count: 0, rpnSum: 0, highRisk: 0 }
-          fmMap[mode].count++
-          if (item.rpn) {
-            fmMap[mode].rpnSum += item.rpn
-            if (item.rpn >= 100) fmMap[mode].highRisk++
+          for (const map of [allFmMap, projFmMap]) {
+            if (!map[mode]) map[mode] = { count: 0, rpnSum: 0, highRisk: 0 }
+            map[mode].count++
+            if (item.rpn) { map[mode].rpnSum += item.rpn; if (item.rpn >= 100) map[mode].highRisk++ }
           }
         }
+        byProject[project.id] = buildFmStats(projFmMap)
       }
 
       setStats(results)
-      setFmStats(
-        FM_ORDER
-          .filter(m => fmMap[m])
-          .map(m => ({
-            mode: m,
-            count: fmMap[m].count,
-            avgRpn: fmMap[m].count ? Math.round(fmMap[m].rpnSum / fmMap[m].count) : 0,
-            highRisk: fmMap[m].highRisk,
-          }))
-      )
+      setFmAll(buildFmStats(allFmMap))
+      setFmByProject(byProject)
       setLoading(false)
     }
     load()
   }, [])
 
-  // per-project FM stats
-  const [projFmStats, setProjFmStats] = useState<FmStat[]>([])
-  useEffect(() => {
-    if (selectedProject === '__all__') { setProjFmStats(fmStats); return }
-    async function loadProj() {
-      const { data: items } = await supabase
-        .from('fmea_items')
-        .select('failure_mode,rpn')
-        .eq('project_id', selectedProject)
-      if (!items) return
-      const fmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
-      for (const item of items) {
-        const mode = item.failure_mode ?? 'N/A'
-        if (!fmMap[mode]) fmMap[mode] = { count: 0, rpnSum: 0, highRisk: 0 }
-        fmMap[mode].count++
-        if (item.rpn) { fmMap[mode].rpnSum += item.rpn; if (item.rpn >= 100) fmMap[mode].highRisk++ }
-      }
-      setProjFmStats(
-        FM_ORDER
-          .filter(m => fmMap[m])
-          .map(m => ({
-            mode: m,
-            count: fmMap[m].count,
-            avgRpn: fmMap[m].count ? Math.round(fmMap[m].rpnSum / fmMap[m].count) : 0,
-            highRisk: fmMap[m].highRisk,
-          }))
-      )
-    }
-    loadProj()
-  }, [selectedProject, fmStats])
-
   const totalItems = stats.reduce((s, p) => s + p.total, 0)
   const totalFilled = stats.reduce((s, p) => s + p.filled, 0)
   const totalHigh = stats.reduce((s, p) => s + p.highRisk, 0)
 
-  const displayFm = selectedProject === '__all__' ? fmStats : projFmStats
+  const displayFm = selectedProject === '__all__' ? fmAll : (fmByProject[selectedProject] ?? [])
   const maxFmCount = Math.max(...displayFm.map(f => f.count), 1)
 
   return (
