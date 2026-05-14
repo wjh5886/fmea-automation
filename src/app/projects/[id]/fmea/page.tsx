@@ -24,6 +24,122 @@ function NumInput({ value, onChange }: { value: number | null; onChange: (v: num
   )
 }
 
+type RagResult = {
+  id: string
+  variable_name: string
+  failure_mode: string | null
+  effect_system: string | null
+  preventive_action: string | null
+  severity: number | null
+  occurrence: number | null
+  detection: number | null
+  rpn: number | null
+  similarity: number
+}
+
+function RagPanel({
+  item,
+  onClose,
+  onApply,
+}: {
+  item: { id: string; variable_name: string; failure_mode: string | null }
+  onClose: () => void
+  onApply: (itemId: string, patch: { effect_system?: string; preventive_action?: string }) => void
+}) {
+  const [results, setResults] = useState<RagResult[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    fetch('/backend/rag/similar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        variable_name: item.variable_name,
+        failure_mode: item.failure_mode,
+        top_k: 5,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { setResults(d.results ?? []); setLoading(false) })
+      .catch(e => { setError(String(e)); setLoading(false) })
+  }, [item.id])
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+          <div>
+            <h2 className="font-bold text-slate-800 text-sm">유사 항목 검색 (RAG)</h2>
+            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-md">
+              {item.variable_name.split('(')[0].trim()} [{item.failure_mode ?? 'ANY'}]
+            </p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+          {loading && (
+            <div className="text-center py-8 text-slate-400 text-sm">
+              <span className="inline-block w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
+              JG1/SX3_ICE 데이터에서 검색 중...
+            </div>
+          )}
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+              백엔드 서버 미연결 — <code>start_local.bat</code> 실행 후 재시도
+            </div>
+          )}
+          {!loading && !error && results.length === 0 && (
+            <div className="text-center py-8 text-slate-400 text-sm">유사 항목 없음 (임베딩 미생성 가능)</div>
+          )}
+          {results.map((r, i) => (
+            <div key={r.id} className="border border-slate-200 rounded-lg p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <span className="text-xs font-mono text-slate-700 font-medium">{r.variable_name.split('(')[0].trim()}</span>
+                  <span className="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono">{r.failure_mode}</span>
+                  <span className={`ml-2 text-xs font-medium ${r.similarity >= 0.7 ? 'text-emerald-600' : r.similarity >= 0.5 ? 'text-blue-600' : 'text-slate-400'}`}>
+                    유사도 {(r.similarity * 100).toFixed(0)}%
+                  </span>
+                  {r.rpn && <span className="ml-2 text-xs text-slate-400">RPN {r.rpn}</span>}
+                </div>
+                <button
+                  onClick={() => onApply(item.id, {
+                    effect_system: r.effect_system ?? undefined,
+                    preventive_action: r.preventive_action ?? undefined,
+                  })}
+                  className="shrink-0 text-xs bg-emerald-600 text-white rounded px-2.5 py-1 hover:bg-emerald-700"
+                >
+                  적용
+                </button>
+              </div>
+              {r.effect_system && (
+                <div className="mb-1.5">
+                  <span className="text-xs text-slate-400 block mb-0.5">Effect on System</span>
+                  <p className="text-xs text-slate-700 leading-relaxed">{r.effect_system}</p>
+                </div>
+              )}
+              {r.preventive_action && (
+                <div>
+                  <span className="text-xs text-slate-400 block mb-0.5">Preventive Action</span>
+                  <p className="text-xs text-slate-700 leading-relaxed">{r.preventive_action}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="px-5 py-3 border-t border-slate-100 shrink-0">
+          <p className="text-xs text-slate-400">JG1 · SX3_ICE_TEST 프로젝트의 양질 데이터 기반</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function JsonImportModal({ projectId, onClose, onDone }: { projectId: string; onClose: () => void; onDone: () => void }) {
   const [text, setText] = useState('')
   const [importing, setImporting] = useState(false)
@@ -99,6 +215,7 @@ export default function FmeaTablePage() {
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [ragItem, setRagItem] = useState<{ id: string; variable_name: string; failure_mode: string | null } | null>(null)
   const [colWidths, setColWidths] = useState<Record<number, number>>({})
   const resizeRef = useRef<{ col: number; startX: number; startW: number } | null>(null)
 
@@ -328,6 +445,13 @@ export default function FmeaTablePage() {
   return (
     <div className="px-4 py-6">
       {showImport && <JsonImportModal projectId={id} onClose={() => setShowImport(false)} onDone={load} />}
+      {ragItem && (
+        <RagPanel
+          item={ragItem}
+          onClose={() => setRagItem(null)}
+          onApply={(itemId, patch) => { updateItem(itemId, patch); setRagItem(null) }}
+        />
+      )}
 
       <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
         <Link href="/projects" className="hover:text-slate-600">프로젝트</Link>
@@ -577,10 +701,16 @@ export default function FmeaTablePage() {
                       </select>
                     </td>
                     <td className="px-2 py-1.5 text-center align-top">
-                      <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
-                        className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40">
-                        {analyzingId === item.id ? '...' : 'AI'}
-                      </button>
+                      <div className="flex flex-col gap-1 items-center">
+                        <button onClick={() => analyzeItem(item)} disabled={analyzingId === item.id || analyzingAll}
+                          className="bg-blue-50 text-blue-600 border border-blue-200 rounded px-2 py-1 text-xs hover:bg-blue-100 disabled:opacity-40 w-full">
+                          {analyzingId === item.id ? '...' : 'AI'}
+                        </button>
+                        <button onClick={() => setRagItem({ id: item.id, variable_name: item.variable_name ?? '', failure_mode: item.failure_mode ?? null })}
+                          className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-2 py-1 text-xs hover:bg-emerald-100 w-full">
+                          유사
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
