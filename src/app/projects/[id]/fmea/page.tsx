@@ -57,7 +57,7 @@ function RagPanel({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        variable_name: item.variable_name,
+        item_id: item.id,
         failure_mode: item.failure_mode,
         top_k: 5,
       }),
