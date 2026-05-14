@@ -84,7 +84,7 @@ function RagPanel({
           {loading && (
             <div className="text-center py-8 text-slate-400 text-sm">
               <span className="inline-block w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-              JG1/SX3_ICE 데이터에서 검색 중...
+              JG1 데이터에서 검색 중...
             </div>
           )}
           {error && (
@@ -133,7 +133,7 @@ function RagPanel({
         </div>
 
         <div className="px-5 py-3 border-t border-slate-100 shrink-0">
-          <p className="text-xs text-slate-400">JG1 · SX3_ICE_TEST 프로젝트의 양질 데이터 기반</p>
+          <p className="text-xs text-slate-400">JG1 프로젝트의 양질 데이터 기반</p>
         </div>
       </div>
     </div>
