@@ -47,6 +47,66 @@ export type SafetyMechanism = {
   created_at: string
 }
 
+export type PreFmeaSession = {
+  id: string
+  name: string
+  status: 'draft' | 'generated' | 'reviewed' | 'upgraded'
+  doc_version: number
+  created_at: string
+  updated_at: string
+}
+
+export type PreFmeaDocument = {
+  id: string
+  session_id: string
+  doc_type: 'fmea_template' | 'design_spec' | 'human_fmea'
+  filename: string
+  storage_path: string | null
+  parsed_text: string | null
+  metadata: { size?: number; mime_type?: string } | null
+  created_at: string
+}
+
+export type PreFmeaItem = {
+  id: string
+  session_id: string
+  item_no: string | null
+  sw_component: string | null
+  function_name: string | null
+  failure_mode: string | null
+  failure_detail: string | null
+  effect_local: string | null
+  effect_system: string | null
+  potential_cause: string | null
+  severity: number | null
+  occurrence: number | null
+  detection: number | null
+  rpn: number | null
+  preventive_action: string | null
+  detection_action: string | null
+  confidence_score: number | null
+  source: 'ai' | 'human' | 'merged'
+  review_status: 'pending' | 'accepted' | 'rejected' | 'modified'
+  human_override: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+export type PreFmeaGap = {
+  id: string
+  session_id: string
+  gap_type: 'missing_item' | 'wrong_sod' | 'missing_cause' | 'wrong_effect' | 'missing_action'
+  field_name: string | null
+  ai_value: string | null
+  human_value: string | null
+  sw_component: string | null
+  failure_mode: string | null
+  severity: number | null
+  lesson: string | null
+  applied: boolean
+  created_at: string
+}
+
 export type FmeaItem = {
   id: string
   project_id: string
