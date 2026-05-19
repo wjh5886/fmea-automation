@@ -199,7 +199,7 @@ export default function PreFmeaPage() {
     setLoadingItems(false)
   }
 
-  // ── Upload file to Supabase Storage ──
+  // ── Upload file via server API (bypasses corporate firewall) ──
   const uploadFile = async (
     file: File,
     docType: 'fmea_template' | 'design_spec' | 'human_fmea',
@@ -208,41 +208,25 @@ export default function PreFmeaPage() {
     if (!activeSession) return
     setSlot(prev => ({ ...prev, uploading: true, error: null }))
 
-    const path = `${activeSession.id}/${docType}/${Date.now()}_${file.name}`
-    const { error: storageErr } = await supabase.storage
-      .from('pre-fmea-docs')
-      .upload(path, file, { upsert: true })
+    const form = new FormData()
+    form.append('file', file)
+    form.append('session_id', activeSession.id)
+    form.append('doc_type', docType)
 
-    if (storageErr) {
-      setSlot(prev => ({ ...prev, uploading: false, error: `스토리지 오류: ${storageErr.message}` }))
-      showToast('파일 업로드 실패 — Supabase Storage 버킷(pre-fmea-docs)을 확인하세요.', 'error')
-      return
+    try {
+      const res = await fetch('/api/pre-fmea/upload', { method: 'POST', body: form })
+      const json = await res.json()
+      if (!res.ok) {
+        setSlot(prev => ({ ...prev, uploading: false, error: json.error ?? '업로드 실패' }))
+        showToast(`업로드 실패: ${json.error}`, 'error')
+        return
+      }
+      setSlot({ docRecord: json, uploading: false, error: null })
+      showToast(`✅ ${file.name} 업로드 완료`)
+    } catch (e) {
+      setSlot(prev => ({ ...prev, uploading: false, error: String(e) }))
+      showToast(`업로드 오류: ${String(e)}`, 'error')
     }
-
-    // 동일 타입 기존 문서 교체
-    await supabase.from('pre_fmea_documents')
-      .delete()
-      .eq('session_id', activeSession.id)
-      .eq('doc_type', docType)
-
-    const { data: doc, error: dbErr } = await supabase
-      .from('pre_fmea_documents')
-      .insert({
-        session_id:   activeSession.id,
-        doc_type:     docType,
-        filename:     file.name,
-        storage_path: path,
-        metadata:     { size: file.size, mime_type: file.type },
-      })
-      .select()
-      .single()
-
-    if (dbErr) {
-      setSlot(prev => ({ ...prev, uploading: false, error: `DB 오류: ${dbErr.message}` }))
-      return
-    }
-    setSlot({ docRecord: doc, uploading: false, error: null })
-    showToast(`✅ ${file.name} 업로드 완료`)
   }
 
   // ── Generate FMEA items ──
