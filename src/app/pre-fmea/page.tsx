@@ -63,7 +63,7 @@ function UploadCard({
       onClick={() => !disabled && !slot.uploading && inputRef.current?.click()}
       className={`relative border-2 border-dashed rounded-xl p-6 transition-all select-none
         ${disabled ? 'opacity-40 cursor-not-allowed' : slot.uploading ? 'cursor-wait' : 'cursor-pointer hover:border-blue-400 hover:bg-blue-50/30'}
-        ${done ? 'border-emerald-400 bg-emerald-50/20' : slot.error ? 'border-red-400 bg-red-50/20' : 'border-slate-300 bg-white'}
+        ${done ? 'border-emerald-400 bg-emerald-50/20' : slot.error ? 'border-red-400 bg-red-50/20' : slot.uploading ? 'border-blue-400 bg-blue-50/20' : 'border-slate-300 bg-white'}
       `}
     >
       <input
@@ -199,7 +199,7 @@ export default function PreFmeaPage() {
     setLoadingItems(false)
   }
 
-  // ── Upload file via server API (bypasses corporate firewall) ──
+  // ── Upload file via server API (base64 JSON — bypasses corporate firewall) ──
   const uploadFile = async (
     file: File,
     docType: 'fmea_template' | 'design_spec' | 'human_fmea',
@@ -208,13 +208,31 @@ export default function PreFmeaPage() {
     if (!activeSession) return
     setSlot(prev => ({ ...prev, uploading: true, error: null }))
 
-    const form = new FormData()
-    form.append('file', file)
-    form.append('session_id', activeSession.id)
-    form.append('doc_type', docType)
-
     try {
-      const res = await fetch('/api/pre-fmea/upload', { method: 'POST', body: form })
+      // Read file as base64 (avoids multipart restrictions)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result.split(',')[1] ?? result)
+        }
+        reader.onerror = () => reject(new Error('파일 읽기 실패'))
+        reader.readAsDataURL(file)
+      })
+
+      const res = await fetch('/api/pre-fmea/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: activeSession.id,
+          doc_type: docType,
+          filename: file.name,
+          mime_type: file.type || null,
+          size: file.size,
+          data_base64: base64,
+        }),
+      })
+
       const json = await res.json()
       if (!res.ok) {
         setSlot(prev => ({ ...prev, uploading: false, error: json.error ?? '업로드 실패' }))

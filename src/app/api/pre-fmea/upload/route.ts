@@ -7,19 +7,16 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File | null
-    const sessionId = formData.get('session_id') as string | null
-    const docType = formData.get('doc_type') as string | null
+    const { session_id, doc_type, filename, mime_type, size, data_base64 } = await req.json()
 
-    if (!file || !sessionId || !docType) {
-      return NextResponse.json({ error: 'file, session_id, doc_type 필드가 필요합니다.' }, { status: 400 })
+    if (!session_id || !doc_type || !filename || !data_base64) {
+      return NextResponse.json({ error: '필수 필드 누락' }, { status: 400 })
     }
 
-    const storagePath = `${sessionId}/${docType}/${Date.now()}_${file.name}`
-    const fileBuffer = await file.arrayBuffer()
+    const fileBuffer = Buffer.from(data_base64, 'base64')
+    const storagePath = `${session_id}/${doc_type}/${Date.now()}_${filename}`
 
-    // 1. Upload to Supabase Storage (server-side — bypasses corporate firewall)
+    // 1. Upload to Supabase Storage (server-side)
     const uploadRes = await fetch(
       `${SUPABASE_URL}/storage/v1/object/pre-fmea-docs/${storagePath}`,
       {
@@ -27,7 +24,7 @@ export async function POST(req: NextRequest) {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': file.type || 'application/octet-stream',
+          'Content-Type': mime_type || 'application/octet-stream',
           'x-upsert': 'true',
         },
         body: fileBuffer,
@@ -36,12 +33,15 @@ export async function POST(req: NextRequest) {
 
     if (!uploadRes.ok) {
       const errText = await uploadRes.text()
-      return NextResponse.json({ error: `Storage 업로드 실패 (${uploadRes.status}): ${errText}` }, { status: 500 })
+      return NextResponse.json(
+        { error: `Storage 업로드 실패 (${uploadRes.status}): ${errText}` },
+        { status: 500 },
+      )
     }
 
     // 2. Delete existing doc of same type
     await fetch(
-      `${SUPABASE_URL}/rest/v1/pre_fmea_documents?session_id=eq.${sessionId}&doc_type=eq.${docType}`,
+      `${SUPABASE_URL}/rest/v1/pre_fmea_documents?session_id=eq.${session_id}&doc_type=eq.${doc_type}`,
       {
         method: 'DELETE',
         headers: {
@@ -61,36 +61,37 @@ export async function POST(req: NextRequest) {
         Prefer: 'return=representation',
       },
       body: JSON.stringify({
-        session_id: sessionId,
-        doc_type: docType,
-        filename: file.name,
+        session_id,
+        doc_type,
+        filename,
         storage_path: storagePath,
-        metadata: { size: file.size, mime_type: file.type || null },
+        metadata: { size: size ?? fileBuffer.length, mime_type: mime_type || null },
       }),
     })
 
     if (!insertRes.ok) {
       const errText = await insertRes.text()
-      return NextResponse.json({ error: `DB 저장 실패 (${insertRes.status}): ${errText}` }, { status: 500 })
+      return NextResponse.json(
+        { error: `DB 저장 실패 (${insertRes.status}): ${errText}` },
+        { status: 500 },
+      )
     }
 
     const rows = await insertRes.json()
     const doc = Array.isArray(rows) ? rows[0] : rows
-    if (!doc) {
-      // Storage succeeded but DB return was empty — return minimal shape so client still shows success
-      return NextResponse.json({
+
+    return NextResponse.json(
+      doc ?? {
         id: crypto.randomUUID(),
-        session_id: sessionId,
-        doc_type: docType,
-        filename: file.name,
+        session_id,
+        doc_type,
+        filename,
         storage_path: storagePath,
         parsed_text: null,
-        metadata: { size: file.size, mime_type: file.type || null },
+        metadata: { size: size ?? fileBuffer.length, mime_type: mime_type || null },
         created_at: new Date().toISOString(),
-      })
-    }
-
-    return NextResponse.json(doc)
+      },
+    )
   } catch (e) {
     console.error('[pre-fmea/upload]', e)
     return NextResponse.json({ error: String(e) }, { status: 500 })
