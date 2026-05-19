@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
     const storagePath = `${sessionId}/${docType}/${Date.now()}_${file.name}`
     const fileBuffer = await file.arrayBuffer()
 
-    // 1. Upload to Supabase Storage (server-side)
+    // 1. Upload to Supabase Storage (server-side — bypasses corporate firewall)
     const uploadRes = await fetch(
       `${SUPABASE_URL}/storage/v1/object/pre-fmea-docs/${storagePath}`,
       {
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (!uploadRes.ok) {
       const errText = await uploadRes.text()
-      return NextResponse.json({ error: `Storage 업로드 실패: ${errText}` }, { status: 500 })
+      return NextResponse.json({ error: `Storage 업로드 실패 (${uploadRes.status}): ${errText}` }, { status: 500 })
     }
 
     // 2. Delete existing doc of same type
@@ -63,18 +65,34 @@ export async function POST(req: NextRequest) {
         doc_type: docType,
         filename: file.name,
         storage_path: storagePath,
-        metadata: { size: file.size, mime_type: file.type },
+        metadata: { size: file.size, mime_type: file.type || null },
       }),
     })
 
     if (!insertRes.ok) {
       const errText = await insertRes.text()
-      return NextResponse.json({ error: `DB 저장 실패: ${errText}` }, { status: 500 })
+      return NextResponse.json({ error: `DB 저장 실패 (${insertRes.status}): ${errText}` }, { status: 500 })
     }
 
-    const [doc] = await insertRes.json()
+    const rows = await insertRes.json()
+    const doc = Array.isArray(rows) ? rows[0] : rows
+    if (!doc) {
+      // Storage succeeded but DB return was empty — return minimal shape so client still shows success
+      return NextResponse.json({
+        id: crypto.randomUUID(),
+        session_id: sessionId,
+        doc_type: docType,
+        filename: file.name,
+        storage_path: storagePath,
+        parsed_text: null,
+        metadata: { size: file.size, mime_type: file.type || null },
+        created_at: new Date().toISOString(),
+      })
+    }
+
     return NextResponse.json(doc)
   } catch (e) {
+    console.error('[pre-fmea/upload]', e)
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }

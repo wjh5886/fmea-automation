@@ -149,7 +149,7 @@ export default function PreFmeaPage() {
   // ── Toast ──
   const showToast = (msg: string, type: 'info' | 'error' = 'info') => {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
+    setTimeout(() => setToast(null), type === 'error' ? 8000 : 4500)
   }
 
   // ── Create session ──
@@ -280,7 +280,7 @@ export default function PreFmeaPage() {
   if (!activeSession) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Toast toast={toast} />
+        <Toast toast={toast} onClose={() => setToast(null)} />
 
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -396,7 +396,7 @@ export default function PreFmeaPage() {
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="px-6 py-6 max-w-7xl mx-auto">
-      <Toast toast={toast} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-400 mb-5">
@@ -702,12 +702,16 @@ export default function PreFmeaPage() {
 }
 
 // ─── Toast component ──────────────────────────────────────────────────────────
-function Toast({ toast }: { toast: { msg: string; type: 'info' | 'error' } | null }) {
+function Toast({ toast, onClose }: { toast: { msg: string; type: 'info' | 'error' } | null; onClose: () => void }) {
   if (!toast) return null
   return (
-    <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg text-sm shadow-lg max-w-sm
-      ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`}>
-      {toast.msg}
+    <div
+      onClick={onClose}
+      className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg text-sm shadow-xl max-w-sm cursor-pointer flex items-start gap-3
+        ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`}
+    >
+      <span className="flex-1">{toast.msg}</span>
+      <span className="shrink-0 opacity-60 text-xs mt-0.5">✕</span>
     </div>
   )
 }
