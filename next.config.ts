@@ -5,6 +5,17 @@ const supabaseUrl = "https://itzgdbeiyvodhfhmvrfw.supabase.co";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['172.20.77.4', '192.168.*', '10.*', '172.*'],
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'ALLOW-FROM https://codebeamer.slworld.com' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://codebeamer.slworld.com" },
+        ],
+      },
+    ]
+  },
   async rewrites() {
     return [
       {
