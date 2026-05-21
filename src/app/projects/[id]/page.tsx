@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, type Project, type SwUnit, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
 
@@ -15,6 +15,7 @@ const ASIL_COLORS: Record<string, string> = {
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
   const [units, setUnits] = useState<SwUnit[]>([])
   const [sgs, setSgs] = useState<SafetyGoal[]>([])
@@ -92,6 +93,12 @@ export default function ProjectDetailPage() {
     setSms(s => s.filter(x => x.id !== smId))
   }
 
+  const deleteProject = async () => {
+    if (!project || !confirm(`"${project.name}" 을 삭제하시겠습니까?\n삭제된 프로젝트 함에서 복원할 수 있습니다.`)) return
+    await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    router.push('/projects')
+  }
+
   if (!project) return <div className="text-center py-16 text-slate-400">불러오는 중...</div>
 
   const fillRate = stats.total > 0 ? Math.round((stats.filled / stats.total) * 100) : 0
@@ -111,9 +118,15 @@ export default function ProjectDetailPage() {
           <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
           {project.vehicle_model && <p className="text-slate-500 text-sm mt-1">차종: {project.vehicle_model}</p>}
         </div>
-        <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
-          FMEA 테이블 →
-        </Link>
+        <div className="flex gap-2">
+          <button onClick={deleteProject}
+            className="border border-red-200 text-red-500 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition-colors">
+            🗑️ 삭제
+          </button>
+          <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
+            FMEA 테이블 →
+          </Link>
+        </div>
       </div>
 
       {/* 통계 */}
