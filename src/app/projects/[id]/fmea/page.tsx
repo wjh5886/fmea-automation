@@ -750,12 +750,20 @@ export default function FmeaTablePage() {
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-1.5 align-top">
-                      <select value={item.effect_safety_goal ?? ''} onChange={e => updateItem(item.id, { effect_safety_goal: e.target.value })}
+                      <select
+                        value={item.safety_goal_id ?? ''}
+                        onChange={e => {
+                          const sg = sgs.find(s => s.id === e.target.value)
+                          updateItem(item.id, {
+                            safety_goal_id: e.target.value || null,
+                            effect_safety_goal: sg?.sg_id ?? null,
+                          })
+                        }}
                         className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white">
                         <option value="">-</option>
                         {sgs.map(sg => (
-                          <option key={sg.id} value={sg.sg_id}>
-                            {sg.sg_id}{sg.asil ? ` (ASIL ${sg.asil})` : ''}
+                          <option key={sg.id} value={sg.id}>
+                            {sg.sg_id}{sg.asil ? ` (ASIL-${sg.asil})` : ''}
                           </option>
                         ))}
                       </select>
