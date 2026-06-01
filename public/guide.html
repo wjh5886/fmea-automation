@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사전 FMEA_LEB 사용 설명서</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px; min-height: 100vh; background: #0f172a; color: #94a3b8;
+    padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0;
+  }
+  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid #1e293b; margin-bottom: 16px; }
+  .sidebar-logo h1 { color: #f1f5f9; font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .sidebar-logo p { color: #64748b; font-size: 11px; margin-top: 4px; }
+  .sidebar-nav a {
+    display: block; padding: 7px 20px; font-size: 13px; color: #94a3b8;
+    text-decoration: none; border-left: 2px solid transparent; transition: all .15s;
+  }
+  .sidebar-nav a:hover { color: #e2e8f0; background: #1e293b; }
+  .sidebar-nav a.active { color: #60a5fa; border-left-color: #60a5fa; background: #1e293b; }
+  .sidebar-nav .group-label {
+    padding: 12px 20px 4px; font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: #475569;
+  }
+  .main { flex: 1; padding: 48px 56px; max-width: 960px; }
+
+  h2 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 28px 0 10px; }
+  p  { font-size: 14px; line-height: 1.75; color: #475569; margin-bottom: 12px; }
+  section { margin-bottom: 64px; scroll-margin-top: 32px; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }
+
+  .step-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; border-radius: 12px; margin-bottom: 20px;
+  }
+  .step-header.blue   { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .step-header.violet { background: #f5f3ff; border: 1px solid #ddd6fe; }
+  .step-header.green  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .step-num.blue { background: #2563eb; } .step-num.violet { background: #7c3aed; } .step-num.green { background: #16a34a; }
+  .step-title { font-size: 15px; font-weight: 700; }
+  .step-title.blue { color: #1d4ed8; } .step-title.violet { color: #6d28d9; } .step-title.green { color: #15803d; }
+  .step-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+
+  .info { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+  .info p { color: #0369a1; margin: 0; font-size: 13px; }
+  .warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+  .warn p { color: #92400e; margin: 0; font-size: 13px; }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; vertical-align: middle; }
+  .badge-vh { background: #dc2626; color: #fff; }
+  .badge-h  { background: #f97316; color: #fff; }
+  .badge-m  { background: #facc15; color: #1e293b; }
+  .badge-l  { background: #dcfce7; color: #166534; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+  th { background: #f8fafc; padding: 8px 12px; text-align: left; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  .flow-arrow { text-align: center; color: #94a3b8; font-size: 20px; margin: 8px 0; }
+
+  .tracker { display: flex; gap: 0; margin-bottom: 32px; }
+  .tracker-step { flex: 1; text-align: center; padding: 12px 8px; border-top: 3px solid #e2e8f0; }
+  .tracker-step.done { border-top-color: #2563eb; }
+  .tracker-step .t-num {
+    width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0;
+    color: #64748b; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px;
+  }
+  .tracker-step.done .t-num { background: #2563eb; color: #fff; }
+  .tracker-step .t-label { font-size: 11px; color: #64748b; display: block; }
+  .tracker-step.done .t-label { color: #2563eb; font-weight: 600; }
+
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; color: #475569; }
+
+  .concept-list { list-style: none; }
+  .concept-list li { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .concept-list li:last-child { border-bottom: none; }
+  .concept-key { font-weight: 600; color: #1e293b; min-width: 130px; flex-shrink: 0; }
+  .concept-val { color: #64748b; line-height: 1.6; }
+
+  .hazop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .hazop-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; }
+  .hazop-item .kw { font-weight: 700; font-size: 13px; color: #1e293b; font-family: monospace; }
+  .hazop-item .kw-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  @media (max-width: 900px) { .sidebar { display: none; } .main { padding: 24px 20px; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>사전 FMEA_LEB</h1>
+    <p>SW FMEA 자동화 사용 설명서</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="group-label">시작하기</div>
+    <a href="#overview">시스템 개요</a>
+    <a href="#start">세션 만들기</a>
+
+    <div class="group-label">1단계</div>
+    <a href="#input">① INPUT — 파일 업로드</a>
+    <a href="#generate">② GENERATE — 추출 & 작성</a>
+    <a href="#output">③ OUTPUT — 항목 확인</a>
+
+    <div class="group-label">2단계</div>
+    <a href="#vh-review">VH 항목 집중 검토</a>
+    <a href="#gap">Gap 분석</a>
+    <a href="#enhance">고도화</a>
+    <a href="#recalc">AP 재계산</a>
+
+    <div class="group-label">3단계</div>
+    <a href="#report-meta">분석 정보 입력</a>
+    <a href="#report-sections">리포트 섹션 설명</a>
+    <a href="#excel">Excel 내보내기</a>
+
+    <div class="group-label">참고</div>
+    <a href="#ap">AP 등급 기준</a>
+    <a href="#hazop">HAZOP 가이드워드</a>
+    <a href="#concepts">주요 개념</a>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- 개요 -->
+  <section id="overview">
+    <h2>사전 FMEA_LEB 사용 설명서</h2>
+    <p>
+      다양한 차종·아이템의 SW FMEA를 자동화하는 도구입니다.
+      설계사양서·DBC·아키텍처 문서를 업로드하면 AI가 HAZOP 9가지 가이드워드를 적용하여
+      FMEA 항목을 자동으로 작성하고, AP·SPF/LF 분류까지 산출합니다.
+    </p>
+
+    <div class="tracker">
+      <div class="tracker-step done"><span class="t-num">1</span><span class="t-label">문서 업로드 & 생성</span></div>
+      <div class="tracker-step done"><span class="t-num">2</span><span class="t-label">피드백 & 고도화</span></div>
+      <div class="tracker-step done"><span class="t-num">3</span><span class="t-label">FMEA 결과 리포트</span></div>
+    </div>
+
+    <table>
+      <tr><th>항목</th><th>내용</th></tr>
+      <tr><td>분석 대상</td><td>차종·아이템 무관하게 사용 가능 (예: SBW, EPS, PLBM 등 SW 모듈 단위)</td></tr>
+      <tr><td>HAZOP 가이드워드</td><td>MORE / LESS / REVERSE / CORRUPT / NO / AS_WELL_AS / PART_OF / EARLY / LATE (9종)</td></tr>
+      <tr><td>AP 기준</td><td>AIAG-VDA 2019 룩업 테이블 (VH / H / M / L)</td></tr>
+      <tr><td>Safety Goal</td><td>프로젝트 설정에 따라 복수 SG 적용 가능</td></tr>
+      <tr><td>생성 방식</td><td>ICD(인터페이스 변수) × HAZOP 조합 자동 생성 + 설계사양서 기반 항목 병행</td></tr>
+    </table>
+  </section>
+
+  <!-- 세션 만들기 -->
+  <section id="start">
+    <h2>세션 만들기</h2>
+    <p>모든 작업은 <strong>세션</strong> 단위로 관리됩니다. 하나의 세션 = 하나의 FMEA 작업 단위입니다. 차종과 아이템이 다르면 별도 세션을 생성합니다.</p>
+
+    <div class="card">
+      <div class="card-title">새 세션 생성 방법</div>
+      <ol style="font-size:13px; color:#475569; padding-left:18px; line-height:2.2;">
+        <li>우상단 <strong>+ 새 세션 만들기</strong> 버튼 클릭</li>
+        <li><strong>아이템명</strong> 입력 — 분석할 SW 모듈명 (예: SBW, EPS, PLBM)</li>
+        <li><strong>세션명</strong> 입력 — 차종_시스템명_버전 형태 권장 (예: GN7_EPS_사전FMEA_v1)</li>
+        <li><strong>세션 만들기</strong> 클릭 → 1단계로 자동 진입</li>
+      </ol>
+    </div>
+
+    <div class="info"><p>💡 세션 목록 카드에서 아이템별로 그룹화되어 표시되며, 각 세션의 생성 항목 수와 진행 상태를 바로 확인할 수 있습니다.</p></div>
+
+    <table>
+      <tr><th>세션 상태</th><th>의미</th></tr>
+      <tr><td><code>Draft</code></td><td>세션 생성 후 FMEA 항목 미생성 상태</td></tr>
+      <tr><td><code>생성완료</code></td><td>1단계에서 FMEA 항목이 생성된 상태</td></tr>
+      <tr><td><code>검토완료</code></td><td>2단계 Gap 분석이 실행된 상태</td></tr>
+      <tr><td><code>고도화완료</code></td><td>2단계 전문가 병합이 완료된 상태</td></tr>
+    </table>
+  </section>
+
+  <hr>
+  <h2 style="margin-bottom:24px;">1단계 — 문서 업로드 & 생성</h2>
+
+  <!-- INPUT -->
+  <section id="input">
+    <div class="step-header blue">
+      <span class="step-num blue">1</span>
+      <div>
+        <div class="step-title blue">INPUT</div>
+        <div class="step-desc">분석에 사용할 파일을 업로드하세요</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>파일 종류</th><th>필수 여부</th><th>형식</th><th>설명</th></tr>
+      <tr><td><strong>FMEA 양식</strong></td><td>✅ 필수</td><td>.xlsx / .xls</td><td>빈 양식 파일 — 컬럼 구조 참조 및 내보내기 기준으로 사용</td></tr>
+      <tr><td><strong>DBC 파일</strong></td><td>선택</td><td>.dbc / .txt</td><td>CAN 시그널 정의 파일 — 인터페이스 추출 정확도 향상</td></tr>
+      <tr><td><strong>시스템 아키텍처</strong></td><td>선택</td><td>.pdf / .docx</td><td>복수 파일 가능. SW 컴포넌트 간 인터페이스 자동 매칭에 활용</td></tr>
+      <tr><td><strong>SW 설계사양서</strong></td><td>✅ 필수</td><td>.pdf / .docx / .txt</td><td>복수 파일 가능. FMEA 항목 생성의 핵심 입력 문서</td></tr>
+    </table>
+
+    <div class="info"><p>💡 아키텍처와 DBC를 함께 올리면 컴포넌트-시그널 매칭 정확도가 크게 높아집니다. 없을 경우 사양서만으로도 생성 가능합니다.</p></div>
+  </section>
+
+  <div class="flow-arrow">↓</div>
+
+  <!-- GENERATE -->
+  <section id="generate">
+    <div class="step-header violet">
+      <span class="step-num violet">2</span>
+      <div>
+        <div class="step-title violet">GENERATE</div>
+        <div class="step-desc">인터페이스 추출 후 FMEA 자동 작성</div>
+      </div>
+    </div>
+
+    <h3>Step 1 — 인터페이스 변수 추출</h3>
+    <p>업로드된 파일에서 FMEA 분석 대상 인터페이스 변수를 추출합니다. 세 가지 방법 중 상황에 맞게 선택하세요.</p>
+
+    <table>
+      <tr><th>버튼</th><th>필요 파일</th><th>설명</th></tr>
+      <tr>
+        <td><strong>🏗 아키텍처+DBC 자동 매칭</strong> <span style="background:#dcfce7;color:#166534;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;">권장</span></td>
+        <td>아키텍처 (필수), DBC (선택)</td>
+        <td>아키텍처 문서와 DBC를 매칭하여 컴포넌트별 인터페이스 변수를 추출. 가장 정확.</td>
+      </tr>
+      <tr>
+        <td><strong>📡 DBC만 추출</strong></td>
+        <td>DBC</td>
+        <td>DBC 파일의 CAN 시그널만으로 변수 목록 생성. 아키텍처 없을 때 사용.</td>
+      </tr>
+      <tr>
+        <td><strong>🤖 사양서에서 AI 추출</strong></td>
+        <td>SW 설계사양서</td>
+        <td>AI가 사양서를 읽어 인터페이스 변수를 추출. API 키 필요.</td>
+      </tr>
+    </table>
+
+    <div class="info"><p>💡 추출 완료 시 "컴포넌트 N개, 변수 M개 준비됨 ✓" 메시지와 함께 컴포넌트 목록이 표시됩니다.</p></div>
+
+    <h3>Step 2 — FMEA 자동 작성</h3>
+    <p>아래 세 가지 조건이 모두 충족되면 버튼이 활성화됩니다.</p>
+
+    <div class="card">
+      <div class="card-title">활성화 조건</div>
+      <ul style="font-size:13px; color:#475569; padding-left:18px; line-height:2.2;">
+        <li>✅ FMEA 양식 업로드 완료</li>
+        <li>✅ SW 설계사양서 1개 이상 업로드 완료</li>
+        <li>✅ 인터페이스 변수 추출 완료 (Step 1)</li>
+      </ul>
+    </div>
+
+    <p>추출된 인터페이스 변수 × HAZOP 9가이드워드 조합으로 항목을 생성합니다. <strong>30~120초</strong> 소요됩니다.</p>
+    <p>이미 항목이 있을 경우 버튼이 <strong>"🔄 재실행 — 기존 N개 대체"</strong>로 표시됩니다.</p>
+
+    <div class="warn"><p>⚠ 재실행 시 기존 항목이 모두 삭제되고 새로 생성됩니다. 2단계에서 작업한 내용도 초기화되므로 주의하세요.</p></div>
+  </section>
+
+  <div class="flow-arrow">↓</div>
+
+  <!-- OUTPUT -->
+  <section id="output">
+    <div class="step-header green">
+      <span class="step-num green">3</span>
+      <div>
+        <div class="step-title green">OUTPUT</div>
+        <div class="step-desc">생성된 FMEA 항목 확인</div>
+      </div>
+    </div>
+
+    <p>생성 완료 후 총 항목 수, AP 분포 (VH/H/M/L 개수), 고확신(≥80%) 개수가 상단에 표시됩니다.</p>
+
+    <table>
+      <tr><th>컬럼</th><th>내용</th></tr>
+      <tr><td>SW 컴포넌트</td><td>분석 대상 SW 모듈명</td></tr>
+      <tr><td>기능명</td><td>해당 컴포넌트의 기능 설명</td></tr>
+      <tr><td>고장 형태</td><td>HAZOP 가이드워드 (MORE, LESS, NO 등)</td></tr>
+      <tr><td>상세 내용</td><td>고장 형태의 구체적 발현 양상</td></tr>
+      <tr><td>모듈·시스템 영향</td><td>해당 고장이 모듈/시스템에 미치는 영향</td></tr>
+      <tr><td>S / O / D</td><td>Severity / Occurrence / Detection (각 1~10)</td></tr>
+      <tr><td>RPN</td><td>S × O × D</td></tr>
+      <tr><td>AP</td><td>Action Priority — <span class="badge badge-vh">VH</span> <span class="badge badge-h">H</span> <span class="badge badge-m">M</span> <span class="badge badge-l">L</span></td></tr>
+      <tr><td>예방·검출 조치</td><td>현재 설계에 적용된 예방/검출 수단</td></tr>
+      <tr><td>확신도</td><td>AI 생성 신뢰도 (0~100%). 60% 미만 행은 주황색으로 강조 표시</td></tr>
+      <tr><td>상태</td><td>검토 중 / 확정 / 반려 / 수정됨</td></tr>
+    </table>
+
+    <p>우상단 <strong>↓ Excel 내보내기</strong> 버튼으로 26컬럼 Excel 파일을 즉시 다운로드할 수 있습니다.</p>
+  </section>
+
+  <hr>
+  <h2 style="margin-bottom:24px;">2단계 — 피드백 & 고도화</h2>
+  <p style="margin-bottom:24px;">1단계에서 FMEA 항목이 생성된 후 진입 가능합니다. 생성된 항목의 품질을 검토하고 전문가 검토본과 병합합니다.</p>
+
+  <!-- VH 검토 -->
+  <section id="vh-review">
+    <h3>VH 항목 집중 검토</h3>
+    <p>AP=VH인 항목만 필터하여 빨간 테두리 테이블로 표시합니다. VH 항목이 없으면 섹션이 숨겨집니다.</p>
+
+    <div class="card">
+      <div class="card-title">확인 포인트</div>
+      <ul style="font-size:13px; color:#475569; padding-left:18px; line-height:2.2;">
+        <li>S·O·D 값이 실제 시스템 위험도와 일치하는지 검토</li>
+        <li>예방 조치·검출 조치 내용이 구체적으로 기재되어 있는지 확인</li>
+        <li>Counter Measure 상세 내용은 <strong>3단계 리포트 ⑤</strong>에서 확인</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Gap 분석 -->
+  <section id="gap">
+    <h3>Gap 분석 <span style="font-size:12px; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:4px; margin-left:6px; font-weight:400;">선택사항</span></h3>
+    <p>전문가가 검토·완성한 FMEA Excel 파일을 업로드하면 AI 자동 생성본과 대조하여 SOD 오차·누락 항목을 검출합니다. 전문가 검토본이 없는 경우 이 단계는 건너뛸 수 있습니다.</p>
+
+    <table>
+      <tr><th>Gap 유형</th><th>의미</th></tr>
+      <tr><td>누락</td><td>AI가 생성하지 못한 항목 (전문가 검토본에만 존재)</td></tr>
+      <tr><td>SOD_S/O/D</td><td>S·O·D 값이 전문가 기준과 2 이상 차이 나는 항목</td></tr>
+      <tr><td>조치부족</td><td>예방/검출 조치 내용이 전문가 기준보다 불충분한 항목</td></tr>
+    </table>
+  </section>
+
+  <!-- 고도화 -->
+  <section id="enhance">
+    <h3>고도화 (AI + 전문가 병합)</h3>
+    <p>Gap 분석 결과를 바탕으로 전문가 검토본의 SOD 값을 우선 적용하고 누락 항목을 보완합니다. 전문가 검증을 통과하지 못한 항목은 신뢰도가 낮아집니다.</p>
+
+    <div class="info"><p>💡 Gap 분석 없이도 세션 상태가 <code>검토완료</code> 또는 <code>고도화완료</code>이면 고도화 실행이 가능합니다.</p></div>
+
+    <table>
+      <tr><th>통계 카드</th><th>의미</th></tr>
+      <tr><td>🔴 AP=VH 항목</td><td>현재 즉시 조치가 필요한 항목 수</td></tr>
+      <tr><td>✅ 검토 확정</td><td>review_status = accepted 또는 modified 항목 수</td></tr>
+      <tr><td>⏳ 검토 대기</td><td>review_status = pending 항목 수</td></tr>
+    </table>
+  </section>
+
+  <!-- AP 재계산 -->
+  <section id="recalc">
+    <h3>AP 재계산</h3>
+    <p>현재 S·O·D 값을 기준으로 AIAG-VDA 룩업 테이블에 따라 모든 항목의 AP를 다시 계산합니다. 항목의 SOD 값을 수정했거나 Counter Measure 적용 후 S*/O*/D* After가 변경된 경우 실행하세요.</p>
+    <div class="warn"><p>⚠ 재계산 후에만 3단계 리포트의 AP* After 분포가 정확하게 반영됩니다.</p></div>
+    <p>재계산 완료 후 섹션 하단에 <strong>현재 AP 분포</strong> (VH/H/M/L 각 개수)가 실시간으로 표시됩니다.</p>
+  </section>
+
+  <hr>
+  <h2 style="margin-bottom:24px;">3단계 — FMEA 결과 리포트</h2>
+
+  <!-- 메타 입력 -->
+  <section id="report-meta">
+    <h3>분석 정보 입력</h3>
+    <p>리포트 헤더에 표시될 프로젝트 정보를 입력합니다. 입력 전에는 모든 항목이 <code>—</code>로 표시됩니다.</p>
+
+    <table>
+      <tr><th>필드</th><th>설명</th><th>예시</th></tr>
+      <tr><td>차량 모델</td><td>분석 대상 차종 코드</td><td>GN7, JG1, PE</td></tr>
+      <tr><td>분석 아이템</td><td>분석 대상 SW 모듈명</td><td>SBW, EPS, PLBM</td></tr>
+      <tr><td>고객사</td><td>OEM 또는 고객사명</td><td>Hyundai Motor, KIA</td></tr>
+      <tr><td>담당 부서</td><td>작성 부서명</td><td>SW설계3팀</td></tr>
+      <tr><td>작성자</td><td>담당자 이름</td><td>홍길동</td></tr>
+      <tr><td>문서 버전</td><td>문서 버전 정보</td><td>v1, v2.1</td></tr>
+    </table>
+
+    <p>3단계 진입 시 빈 메타로 리포트가 자동 생성됩니다. 정보 입력 후 <strong>🔄 메타 정보 반영하여 재생성</strong>을 클릭하면 업데이트됩니다.</p>
+  </section>
+
+  <!-- 리포트 섹션 -->
+  <section id="report-sections">
+    <h3>리포트 섹션 설명</h3>
+
+    <div class="card">
+      <div class="card-title">① Analysis Information</div>
+      <p style="margin:0;font-size:13px;color:#475569;">차량·아이템·고객사·부서·작성자·버전 및 총 분석 항목 수를 표시하는 헤더 카드.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">② Safety Goal 위반 항목 분석</div>
+      <p style="font-size:13px;color:#475569;margin-bottom:8px;">Safety Goal별 SPF/LF 항목 수와 Safety Mechanism 미할당 건수를 표시합니다.</p>
+      <table>
+        <tr><th>컬럼</th><th>의미</th></tr>
+        <tr><td>Total SPF</td><td>Single Point Failure에 해당하는 전체 항목 수</td></tr>
+        <tr><td>SPF (SM 미할당)</td><td>Safety Mechanism이 없는 SPF 항목 — 빨간색 강조</td></tr>
+        <tr><td>Total LF</td><td>Latent Failure에 해당하는 전체 항목 수</td></tr>
+        <tr><td>LF (SM 미할당)</td><td>Safety Mechanism이 없는 LF 항목</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">③ SOD 분포 매트릭스</div>
+      <p style="margin:0;font-size:13px;color:#475569;">S × D 분포(O 구간 합산) 히트맵. <strong>개선 전(Initial SOD)</strong>과 <strong>개선 후(Recommended Action SOD)</strong>를 나란히 비교합니다. 파란색이 진할수록 항목이 많습니다.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">④ AP 등급 요약</div>
+      <p style="font-size:13px;color:#475569;margin-bottom:8px;">AP 등급별 개선 전/후 항목 수와 증감을 표시합니다.</p>
+      <table>
+        <tr><th>컬럼</th><th>의미</th></tr>
+        <tr><td>개선 전 (Current Design)</td><td>현재 S·O·D 기준 AP 분포</td></tr>
+        <tr><td>개선 후 (Recommended Action)</td><td>Counter Measure 적용 후 AP* 분포</td></tr>
+        <tr><td>증감</td><td>▼ 감소(초록) / ▲ 증가(주황)</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⑤ 추가 조치 활동 리스트</div>
+      <p style="margin:0;font-size:13px;color:#475569;">AP=VH 또는 고위험군(S≥9·O≥6·D≥8) 항목의 Initial S/O/D → Rec S/O/D 변화와 Safety Goal 위반 여부를 테이블로 표시합니다.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⑥ 주요 AP 개선 조치 모니터링</div>
+      <p style="font-size:13px;color:#475569;margin-bottom:8px;">VH 항목의 Open/Closed 현황과 개선 조치 내용을 표시합니다. 기본 50개 표시 후 <strong>전체 보기</strong> 버튼으로 전체 확인 가능합니다.</p>
+      <table>
+        <tr><th>Status</th><th>의미</th></tr>
+        <tr><td>Open</td><td>Counter Measure가 아직 미완료인 항목</td></tr>
+        <tr><td>Closed</td><td>Counter Measure 완료 확인된 항목</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⑦ Conclusion</div>
+      <p style="margin:0;font-size:13px;color:#475569;">AI가 자동 생성한 종합 결론 텍스트입니다. <strong>직접 수정이 가능</strong>하므로 최종 문서에 맞게 편집하세요.</p>
+    </div>
+  </section>
+
+  <!-- Excel -->
+  <section id="excel">
+    <h3>Excel 내보내기</h3>
+    <p>1단계 OUTPUT 우상단 <strong>↓ Excel 내보내기</strong> 버튼을 클릭하면 26컬럼 FMEA Excel 파일이 다운로드됩니다.</p>
+
+    <table>
+      <tr><th>컬럼 범위</th><th>내용</th></tr>
+      <tr><td>C1~C17</td><td>No, SW Unit, 인터페이스 카테고리, 신호명, 타입, 고장형태, 상세, 모듈 영향, 시스템 영향, SG 영향, S, 예방조치, O, Safety Mechanism, 검출조치, D, RPN</td></tr>
+      <tr><td>C18</td><td>Counter Measure 필요 여부 (Yes(VH) / Yes(H) / Conditional / No)</td></tr>
+      <tr><td>C19</td><td>Counter Measure 내용</td></tr>
+      <tr><td>C20~C23</td><td>S* / O* / D* After, AP* After</td></tr>
+      <tr><td>C24</td><td>SPF/LF 분류</td></tr>
+      <tr><td>C25</td><td>D2 (Safety Mechanism DC 기반)</td></tr>
+      <tr><td>C26</td><td>Counter Measure Rationale</td></tr>
+    </table>
+  </section>
+
+  <hr>
+
+  <!-- AP 등급 -->
+  <section id="ap">
+    <h2>AP 등급 기준</h2>
+    <p>AIAG-VDA 2019 룩업 테이블을 기반으로 S·O·D 조합에 따라 자동 산출됩니다.</p>
+
+    <table>
+      <tr><th>등급</th><th>의미</th><th>주요 조건 (예시)</th><th>요구 조치</th></tr>
+      <tr><td><span class="badge badge-vh">VH</span></td><td>Very High</td><td>S≥9 & O≥6, 또는 S=10 & O≥4</td><td>즉시 설계 변경 필수</td></tr>
+      <tr><td><span class="badge badge-h">H</span></td><td>High</td><td>S≥7 & O≥4, 또는 S≥9 & O≥3</td><td>개선 조치 강력 권고</td></tr>
+      <tr><td><span class="badge badge-m">M</span></td><td>Medium</td><td>S≥5 & O≥3</td><td>개선 검토</td></tr>
+      <tr><td><span class="badge badge-l">L</span></td><td>Low</td><td>나머지</td><td>모니터링</td></tr>
+    </table>
+  </section>
+
+  <!-- HAZOP -->
+  <section id="hazop">
+    <h2>HAZOP 가이드워드</h2>
+    <p>9가지 가이드워드를 인터페이스 변수 각각에 적용하여 고장 형태를 도출합니다.</p>
+
+    <div class="hazop-grid">
+      <div class="hazop-item"><div class="kw">MORE</div><div class="kw-desc">신호값이 정상보다 크게 출력</div></div>
+      <div class="hazop-item"><div class="kw">LESS</div><div class="kw-desc">신호값이 정상보다 작게 출력</div></div>
+      <div class="hazop-item"><div class="kw">NO</div><div class="kw-desc">신호가 전혀 출력되지 않음</div></div>
+      <div class="hazop-item"><div class="kw">REVERSE</div><div class="kw-desc">신호 방향 또는 극성이 반전</div></div>
+      <div class="hazop-item"><div class="kw">CORRUPT</div><div class="kw-desc">신호값이 손상 또는 오염</div></div>
+      <div class="hazop-item"><div class="kw">EARLY</div><div class="kw-desc">신호가 예정보다 일찍 발생</div></div>
+      <div class="hazop-item"><div class="kw">LATE</div><div class="kw-desc">신호가 예정보다 늦게 발생</div></div>
+      <div class="hazop-item"><div class="kw">AS_WELL_AS</div><div class="kw-desc">정상 신호 외 추가 신호 발생</div></div>
+      <div class="hazop-item"><div class="kw">PART_OF</div><div class="kw-desc">신호의 일부만 전달</div></div>
+    </div>
+  </section>
+
+  <!-- 개념 -->
+  <section id="concepts">
+    <h2>주요 개념</h2>
+
+    <ul class="concept-list">
+      <li>
+        <span class="concept-key">SPF</span>
+        <span class="concept-val">Single Point Failure. Safety Mechanism이 없으면 직접 Safety Goal 위반으로 이어지는 고장.</span>
+      </li>
+      <li>
+        <span class="concept-key">LF</span>
+        <span class="concept-val">Latent Failure. 단독으로는 Safety Goal을 위반하지 않지만, 다른 고장과 결합 시 위험해지는 고장.</span>
+      </li>
+      <li>
+        <span class="concept-key">Safety Mechanism</span>
+        <span class="concept-val">고장의 영향을 감지·제어·완화하는 기술적 수단. Preventive(예방)와 Detection(감지) 두 종류로 구분.</span>
+      </li>
+      <li>
+        <span class="concept-key">D2</span>
+        <span class="concept-val">Safety Mechanism의 Diagnostic Coverage(진단 포함률)를 반영한 보정 Detection 값. D2가 낮을수록 SM이 효과적으로 적용된 것.</span>
+      </li>
+      <li>
+        <span class="concept-key">Counter Measure</span>
+        <span class="concept-val">AP=VH 또는 고위험 항목에 대해 제안되는 설계 개선 조치. 적용 시 S*/O*/D* After 값과 AP* After가 개선됨.</span>
+      </li>
+      <li>
+        <span class="concept-key">ICD</span>
+        <span class="concept-val">Interface Control Document. SW 컴포넌트 간 인터페이스 변수 목록. 아키텍처+DBC 파일로부터 자동 추출.</span>
+      </li>
+      <li>
+        <span class="concept-key">인터페이스 변수</span>
+        <span class="concept-val">SW 컴포넌트 간 또는 외부와 주고받는 신호·데이터. FMEA에서 각 변수마다 9가지 HAZOP 가이드워드를 적용하여 고장 형태를 도출함.</span>
+      </li>
+    </ul>
+  </section>
+
+</main>
+</div>
+
+<script>
+const sections = document.querySelectorAll('section[id]')
+const links = document.querySelectorAll('.sidebar-nav a')
+window.addEventListener('scroll', () => {
+  let current = ''
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id })
+  links.forEach(a => { a.classList.toggle('active', a.getAttribute('href') === '#' + current) })
+}, { passive: true })
+</script>
+</body>
+</html>
