@@ -837,7 +837,7 @@ export default function PreFmeaPage() {
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">사전 FMEA_LEB</h1>
+            <h1 className="text-2xl font-bold text-slate-900">사전 FMEA</h1>
             <p className="text-sm text-slate-500 mt-1">아이템별 SW FMEA 프로젝트 관리</p>
           </div>
           <button
@@ -910,7 +910,7 @@ export default function PreFmeaPage() {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
-          <button onClick={backToItems} className="hover:text-slate-600 transition-colors">사전 FMEA_LEB</button>
+          <button onClick={backToItems} className="hover:text-slate-600 transition-colors">사전 FMEA</button>
           <span>/</span>
           <span className="text-slate-900 font-bold font-mono">{selectedItem}</span>
         </div>
@@ -961,7 +961,7 @@ export default function PreFmeaPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-400 mb-5">
-        <button onClick={backToItems} className="hover:text-slate-600 transition-colors">사전 FMEA_LEB</button>
+        <button onClick={backToItems} className="hover:text-slate-600 transition-colors">사전 FMEA</button>
         <span>/</span>
         <button onClick={backToSessions} className="hover:text-slate-600 transition-colors font-mono font-medium">
           {activeSession.item_name ?? 'SBW'}
