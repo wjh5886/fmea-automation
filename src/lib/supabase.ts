@@ -50,16 +50,32 @@ export type SafetyMechanism = {
 export type PreFmeaSession = {
   id: string
   name: string
+  item_name: string
   status: 'draft' | 'generated' | 'reviewed' | 'upgraded'
   doc_version: number
   created_at: string
   updated_at: string
 }
 
+export type PreFmeaIcdVariable = {
+  id: string
+  session_id: string
+  sw_component: string | null
+  variable_name: string
+  variable_type: string | null
+  direction: string | null
+  data_type: string | null
+  signal_range: string | null
+  unit: string | null
+  description: string | null
+  sort_order: number
+  created_at: string
+}
+
 export type PreFmeaDocument = {
   id: string
   session_id: string
-  doc_type: 'fmea_template' | 'design_spec' | 'human_fmea'
+  doc_type: 'fmea_template' | 'design_spec' | 'human_fmea' | 'architecture' | 'dbc_file' | 'icd_file'
   filename: string
   storage_path: string | null
   parsed_text: string | null
@@ -85,8 +101,9 @@ export type PreFmeaItem = {
   preventive_action: string | null
   detection_action: string | null
   confidence_score: number | null
-  source: 'ai' | 'human' | 'merged'
+  source: 'ai' | 'icd' | 'human' | 'merged'
   review_status: 'pending' | 'accepted' | 'rejected' | 'modified'
+  action_priority: 'VH' | 'H' | 'M' | 'L' | null
   human_override: Record<string, unknown> | null
   created_at: string
   updated_at: string

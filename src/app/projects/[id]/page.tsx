@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, type Project, type SwUnit, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
+import type { Project, SwUnit, SafetyGoal, SafetyMechanism } from '@/lib/supabase'
 
 type StatItem = { id: string; severity: number | null; occurrence: number | null; detection: number | null; rpn: number | null }
 type Tab = 'overview' | 'sg' | 'sm'
@@ -35,23 +35,13 @@ export default function ProjectDetailPage() {
   const [addingUnit, setAddingUnit] = useState(false)
 
   const load = useCallback(async () => {
-    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData },
-      { count: total }, { count: filled }, { count: high_rpn }] = await Promise.all([
-      supabase.from('projects').select('*').eq('id', id).single(),
-      supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
-      supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
-      supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
-      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id),
-      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id)
-        .not('severity', 'is', null).not('occurrence', 'is', null).not('detection', 'is', null),
-      supabase.from('fmea_items').select('*', { count: 'exact', head: true }).eq('project_id', id)
-        .gte('rpn', 100),
-    ])
+    const res = await fetch(`/api/projects/${id}`)
+    const { project: proj, units: unitData, sgs: sgData, sms: smData, stats: statsData } = await res.json()
     setProject(proj)
     setUnits(unitData ?? [])
     setSgs(sgData ?? [])
     setSms(smData ?? [])
-    setStats({ total: total ?? 0, filled: filled ?? 0, high_rpn: high_rpn ?? 0 })
+    setStats(statsData ?? { total: 0, filled: 0, high_rpn: 0 })
   }, [id])
 
   useEffect(() => { load() }, [load])
@@ -59,8 +49,13 @@ export default function ProjectDetailPage() {
   const addUnit = async () => {
     if (!newUnit.trim()) return
     setAddingUnit(true)
-    const { data } = await supabase.from('sw_units').insert([{ project_id: id, name: newUnit.trim() }]).select().single()
-    if (data) setUnits(u => [...u, data])
+    const res = await fetch(`/api/projects/${id}/units`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newUnit.trim() }),
+    })
+    const data = await res.json()
+    if (res.ok) setUnits(u => [...u, data])
     setNewUnit('')
     setAddingUnit(false)
   }
@@ -68,27 +63,45 @@ export default function ProjectDetailPage() {
   const addSg = async (e: React.FormEvent) => {
     e.preventDefault()
     setSavingSg(true)
-    const { data } = await supabase.from('safety_goals').insert([{ project_id: id, ...sgForm }]).select().single()
-    if (data) { setSgs(s => [...s, data]); setSgForm({ sg_id: '', name: '', asil: 'QM', description: '' }) }
+    const res = await fetch(`/api/projects/${id}/goals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sgForm),
+    })
+    const data = await res.json()
+    if (res.ok) { setSgs(s => [...s, data]); setSgForm({ sg_id: '', name: '', asil: 'QM', description: '' }) }
     setSavingSg(false)
   }
 
   const deleteSg = async (sgId: string) => {
-    await supabase.from('safety_goals').delete().eq('id', sgId)
+    await fetch(`/api/projects/${id}/goals`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goal_id: sgId }),
+    })
     setSgs(s => s.filter(x => x.id !== sgId))
   }
 
   const addSm = async (e: React.FormEvent) => {
     e.preventDefault()
     setSavingSm(true)
-    const payload = { project_id: id, ...smForm, related_sg_id: smForm.related_sg_id || null }
-    const { data } = await supabase.from('safety_mechanisms').insert([payload]).select().single()
-    if (data) { setSms(s => [...s, data]); setSmForm({ sm_id: '', name: '', type: 'Preventive', diagnostic_coverage: 'Medium', description: '', related_sg_id: '' }) }
+    const payload = { ...smForm, related_sg_id: smForm.related_sg_id || null }
+    const res = await fetch(`/api/projects/${id}/mechanisms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (res.ok) { setSms(s => [...s, data]); setSmForm({ sm_id: '', name: '', type: 'Preventive', diagnostic_coverage: 'Medium', description: '', related_sg_id: '' }) }
     setSavingSm(false)
   }
 
   const deleteSm = async (smId: string) => {
-    await supabase.from('safety_mechanisms').delete().eq('id', smId)
+    await fetch(`/api/projects/${id}/mechanisms`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mechanism_id: smId }),
+    })
     setSms(s => s.filter(x => x.id !== smId))
   }
 

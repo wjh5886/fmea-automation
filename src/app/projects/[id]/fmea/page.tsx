@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
+import type { FmeaItem, SwUnit, Project, SafetyGoal, SafetyMechanism } from '@/lib/supabase'
 
 const FAILURE_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -239,42 +239,21 @@ export default function FmeaTablePage() {
 
   const cw = (col: number, def: number) => colWidths[col] ?? def
 
-  const fetchAllItems = async (projectId: string) => {
-    const PAGE = 1000
-    const { count } = await supabase
-      .from('fmea_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('project_id', projectId)
-    if (!count) return []
-    const pages = Math.ceil(count / PAGE)
-    const results = await Promise.all(
-      Array.from({ length: pages }, (_, i) =>
-        supabase
-          .from('fmea_items')
-          .select('*,sw_units(name)')
-          .eq('project_id', projectId)
-          .order('item_no')
-          .order('failure_mode')
-          .order('id')
-          .range(i * PAGE, (i + 1) * PAGE - 1)
-      )
-    )
-    return results.flatMap(r => r.data ?? []) as FmeaItem[]
+  const fetchAllItems = async (projectId: string): Promise<FmeaItem[]> => {
+    const res = await fetch(`/api/projects/${projectId}/items`)
+    return res.ok ? (await res.json()) as FmeaItem[] : []
   }
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: proj }, { data: unitData }, { data: sgData }, { data: smData }] = await Promise.all([
-      supabase.from('projects').select('*').eq('id', id).single(),
-      supabase.from('sw_units').select('*').eq('project_id', id).order('name'),
-      supabase.from('safety_goals').select('*').eq('project_id', id).order('sg_id'),
-      supabase.from('safety_mechanisms').select('*').eq('project_id', id).order('sm_id'),
+    const [projRes, allItems] = await Promise.all([
+      fetch(`/api/projects/${id}`).then(r => r.json()),
+      fetchAllItems(id),
     ])
-    const allItems = await fetchAllItems(id)
-    setProject(proj)
-    setUnits(unitData ?? [])
-    setSgs(sgData ?? [])
-    setSms(smData ?? [])
+    setProject(projRes.project)
+    setUnits(projRes.units ?? [])
+    setSgs(projRes.sgs ?? [])
+    setSms(projRes.sms ?? [])
     setItems(allItems)
     setLoading(false)
   }, [id])
@@ -292,16 +271,16 @@ export default function FmeaTablePage() {
       return merged
     }))
     const item = items.find(i => i.id === itemId)
-    if (item) {
+    const rpn = item ? (() => {
       const merged = { ...item, ...patch }
-      const s = merged.severity ?? 0
-      const o = merged.occurrence ?? 0
-      const d = merged.detection ?? 0
-      const rpn = (s && o && d) ? s * o * d : null
-      await supabase.from('fmea_items').update({ ...patch, rpn }).eq('id', itemId)
-    } else {
-      await supabase.from('fmea_items').update(patch).eq('id', itemId)
-    }
+      const s = merged.severity ?? 0; const o = merged.occurrence ?? 0; const d = merged.detection ?? 0
+      return (s && o && d) ? s * o * d : null
+    })() : undefined
+    await fetch(`/api/projects/${id}/items`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_id: itemId, ...patch, ...(rpn !== undefined ? { rpn } : {}) }),
+    })
   }
 
   const analyzeItem = async (item: FmeaItem) => {
@@ -369,16 +348,21 @@ export default function FmeaTablePage() {
             // Bulk DB update
             await Promise.all(
               (data.results as { id: string; severity: number; occurrence: number; detection: number; effect_system: string; preventive_action: string; detection_action: string }[]).map(r =>
-                supabase.from('fmea_items').update({
-                  severity: r.severity,
-                  occurrence: r.occurrence,
-                  detection: r.detection,
-                  effect_system: r.effect_system || undefined,
-                  preventive_action: r.preventive_action || undefined,
-                  detection_action: r.detection_action || undefined,
-                  ai_generated: true,
-                  status: 'in_review',
-                }).eq('id', r.id)
+                fetch(`/api/projects/${id}/items`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    item_id: r.id,
+                    severity: r.severity,
+                    occurrence: r.occurrence,
+                    detection: r.detection,
+                    ...(r.effect_system ? { effect_system: r.effect_system } : {}),
+                    ...(r.preventive_action ? { preventive_action: r.preventive_action } : {}),
+                    ...(r.detection_action ? { detection_action: r.detection_action } : {}),
+                    ai_generated: true,
+                    status: 'in_review',
+                  }),
+                })
               )
             )
             // Update local state in bulk

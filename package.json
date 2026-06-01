@@ -11,6 +11,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "@supabase/supabase-js": "^2.104.0",
+    "@types/pg": "^8.20.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.8.0",
     "mammoth": "^1.12.0",
     "next": "16.2.4",
@@ -26,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

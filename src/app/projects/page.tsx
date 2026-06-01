@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase, type Project } from '@/lib/supabase'
+import type { Project } from '@/lib/supabase'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('projects').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setProjects(data ?? []); setLoading(false) })
+    fetch('/api/projects')
+      .then(r => r.json())
+      .then(data => { setProjects(data ?? []); setLoading(false) })
   }, [])
 
   return (

@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-
 export default function NewProjectPage() {
   const router = useRouter()
   const [form, setForm] = useState({ name: '', vehicle_model: '', description: '' })
@@ -13,9 +11,17 @@ export default function NewProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const { data } = await supabase.from('projects').insert([form]).select().single()
-    if (data) router.push(`/projects/${data.id}`)
-    else setSaving(false)
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      router.push(`/projects/${data.id}`)
+    } else {
+      setSaving(false)
+    }
   }
 
   return (
