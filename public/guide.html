@@ -120,15 +120,15 @@
     <a href="#output">③ OUTPUT — 항목 확인</a>
 
     <div class="group-label">2단계</div>
+    <a href="#report-meta">분석 정보 입력</a>
+    <a href="#report-sections">리포트 섹션 설명</a>
+    <a href="#excel">Excel 내보내기</a>
+
+    <div class="group-label">3단계</div>
     <a href="#vh-review">VH 항목 집중 검토</a>
     <a href="#gap">Gap 분석</a>
     <a href="#enhance">고도화</a>
     <a href="#recalc">AP 재계산</a>
-
-    <div class="group-label">3단계</div>
-    <a href="#report-meta">분석 정보 입력</a>
-    <a href="#report-sections">리포트 섹션 설명</a>
-    <a href="#excel">Excel 내보내기</a>
 
     <div class="group-label">참고</div>
     <a href="#ap">AP 등급 기준</a>
@@ -151,8 +151,8 @@
 
     <div class="tracker">
       <div class="tracker-step done"><span class="t-num">1</span><span class="t-label">문서 업로드 & 생성</span></div>
-      <div class="tracker-step done"><span class="t-num">2</span><span class="t-label">피드백 & 고도화</span></div>
-      <div class="tracker-step done"><span class="t-num">3</span><span class="t-label">FMEA 결과 리포트</span></div>
+      <div class="tracker-step done"><span class="t-num">2</span><span class="t-label">FMEA 결과 리포트</span></div>
+      <div class="tracker-step done"><span class="t-num">3</span><span class="t-label">피드백 & 고도화</span></div>
     </div>
 
     <table>
@@ -302,62 +302,7 @@
   </section>
 
   <hr>
-  <h2 style="margin-bottom:24px;">2단계 — 피드백 & 고도화</h2>
-  <p style="margin-bottom:24px;">1단계에서 FMEA 항목이 생성된 후 진입 가능합니다. 생성된 항목의 품질을 검토하고 전문가 검토본과 병합합니다.</p>
-
-  <!-- VH 검토 -->
-  <section id="vh-review">
-    <h3>VH 항목 집중 검토</h3>
-    <p>AP=VH인 항목만 필터하여 빨간 테두리 테이블로 표시합니다. VH 항목이 없으면 섹션이 숨겨집니다.</p>
-
-    <div class="card">
-      <div class="card-title">확인 포인트</div>
-      <ul style="font-size:13px; color:#475569; padding-left:18px; line-height:2.2;">
-        <li>S·O·D 값이 실제 시스템 위험도와 일치하는지 검토</li>
-        <li>예방 조치·검출 조치 내용이 구체적으로 기재되어 있는지 확인</li>
-        <li>Counter Measure 상세 내용은 <strong>3단계 리포트 ⑤</strong>에서 확인</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Gap 분석 -->
-  <section id="gap">
-    <h3>Gap 분석 <span style="font-size:12px; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:4px; margin-left:6px; font-weight:400;">선택사항</span></h3>
-    <p>전문가가 검토·완성한 FMEA Excel 파일을 업로드하면 AI 자동 생성본과 대조하여 SOD 오차·누락 항목을 검출합니다. 전문가 검토본이 없는 경우 이 단계는 건너뛸 수 있습니다.</p>
-
-    <table>
-      <tr><th>Gap 유형</th><th>의미</th></tr>
-      <tr><td>누락</td><td>AI가 생성하지 못한 항목 (전문가 검토본에만 존재)</td></tr>
-      <tr><td>SOD_S/O/D</td><td>S·O·D 값이 전문가 기준과 2 이상 차이 나는 항목</td></tr>
-      <tr><td>조치부족</td><td>예방/검출 조치 내용이 전문가 기준보다 불충분한 항목</td></tr>
-    </table>
-  </section>
-
-  <!-- 고도화 -->
-  <section id="enhance">
-    <h3>고도화 (AI + 전문가 병합)</h3>
-    <p>Gap 분석 결과를 바탕으로 전문가 검토본의 SOD 값을 우선 적용하고 누락 항목을 보완합니다. 전문가 검증을 통과하지 못한 항목은 신뢰도가 낮아집니다.</p>
-
-    <div class="info"><p>💡 Gap 분석 없이도 세션 상태가 <code>검토완료</code> 또는 <code>고도화완료</code>이면 고도화 실행이 가능합니다.</p></div>
-
-    <table>
-      <tr><th>통계 카드</th><th>의미</th></tr>
-      <tr><td>🔴 AP=VH 항목</td><td>현재 즉시 조치가 필요한 항목 수</td></tr>
-      <tr><td>✅ 검토 확정</td><td>review_status = accepted 또는 modified 항목 수</td></tr>
-      <tr><td>⏳ 검토 대기</td><td>review_status = pending 항목 수</td></tr>
-    </table>
-  </section>
-
-  <!-- AP 재계산 -->
-  <section id="recalc">
-    <h3>AP 재계산</h3>
-    <p>현재 S·O·D 값을 기준으로 AIAG-VDA 룩업 테이블에 따라 모든 항목의 AP를 다시 계산합니다. 항목의 SOD 값을 수정했거나 Counter Measure 적용 후 S*/O*/D* After가 변경된 경우 실행하세요.</p>
-    <div class="warn"><p>⚠ 재계산 후에만 3단계 리포트의 AP* After 분포가 정확하게 반영됩니다.</p></div>
-    <p>재계산 완료 후 섹션 하단에 <strong>현재 AP 분포</strong> (VH/H/M/L 각 개수)가 실시간으로 표시됩니다.</p>
-  </section>
-
-  <hr>
-  <h2 style="margin-bottom:24px;">3단계 — FMEA 결과 리포트</h2>
+  <h2 style="margin-bottom:24px;">2단계 — FMEA 결과 리포트</h2>
 
   <!-- 메타 입력 -->
   <section id="report-meta">
@@ -374,7 +319,7 @@
       <tr><td>문서 버전</td><td>문서 버전 정보</td><td>v1, v2.1</td></tr>
     </table>
 
-    <p>3단계 진입 시 빈 메타로 리포트가 자동 생성됩니다. 정보 입력 후 <strong>🔄 메타 정보 반영하여 재생성</strong>을 클릭하면 업데이트됩니다.</p>
+    <p>2단계 진입 시 빈 메타로 리포트가 자동 생성됩니다. 정보 입력 후 <strong>🔄 메타 정보 반영하여 재생성</strong>을 클릭하면 업데이트됩니다.</p>
   </section>
 
   <!-- 리포트 섹션 -->
@@ -450,6 +395,61 @@
       <tr><td>C25</td><td>D2 (Safety Mechanism DC 기반)</td></tr>
       <tr><td>C26</td><td>Counter Measure Rationale</td></tr>
     </table>
+  </section>
+
+  <hr>
+  <h2 style="margin-bottom:24px;">3단계 — 피드백 & 고도화</h2>
+  <p style="margin-bottom:24px;">1단계에서 FMEA 항목이 생성된 후 진입 가능합니다. 2단계 리포트를 확인한 뒤 항목의 품질을 검토하고 전문가 검토본과 병합합니다.</p>
+
+  <!-- VH 검토 -->
+  <section id="vh-review">
+    <h3>VH 항목 집중 검토</h3>
+    <p>AP=VH인 항목만 필터하여 빨간 테두리 테이블로 표시합니다. VH 항목이 없으면 섹션이 숨겨집니다.</p>
+
+    <div class="card">
+      <div class="card-title">확인 포인트</div>
+      <ul style="font-size:13px; color:#475569; padding-left:18px; line-height:2.2;">
+        <li>S·O·D 값이 실제 시스템 위험도와 일치하는지 검토</li>
+        <li>예방 조치·검출 조치 내용이 구체적으로 기재되어 있는지 확인</li>
+        <li>Counter Measure 상세 내용은 <strong>2단계 리포트 ⑤</strong>에서 확인</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Gap 분석 -->
+  <section id="gap">
+    <h3>Gap 분석 <span style="font-size:12px; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:4px; margin-left:6px; font-weight:400;">선택사항</span></h3>
+    <p>전문가가 검토·완성한 FMEA Excel 파일을 업로드하면 AI 자동 생성본과 대조하여 SOD 오차·누락 항목을 검출합니다. 전문가 검토본이 없는 경우 이 단계는 건너뛸 수 있습니다.</p>
+
+    <table>
+      <tr><th>Gap 유형</th><th>의미</th></tr>
+      <tr><td>누락</td><td>AI가 생성하지 못한 항목 (전문가 검토본에만 존재)</td></tr>
+      <tr><td>SOD_S/O/D</td><td>S·O·D 값이 전문가 기준과 2 이상 차이 나는 항목</td></tr>
+      <tr><td>조치부족</td><td>예방/검출 조치 내용이 전문가 기준보다 불충분한 항목</td></tr>
+    </table>
+  </section>
+
+  <!-- 고도화 -->
+  <section id="enhance">
+    <h3>고도화 (AI + 전문가 병합)</h3>
+    <p>Gap 분석 결과를 바탕으로 전문가 검토본의 SOD 값을 우선 적용하고 누락 항목을 보완합니다. 전문가 검증을 통과하지 못한 항목은 신뢰도가 낮아집니다.</p>
+
+    <div class="info"><p>💡 Gap 분석 없이도 세션 상태가 <code>검토완료</code> 또는 <code>고도화완료</code>이면 고도화 실행이 가능합니다.</p></div>
+
+    <table>
+      <tr><th>통계 카드</th><th>의미</th></tr>
+      <tr><td>🔴 AP=VH 항목</td><td>현재 즉시 조치가 필요한 항목 수</td></tr>
+      <tr><td>✅ 검토 확정</td><td>review_status = accepted 또는 modified 항목 수</td></tr>
+      <tr><td>⏳ 검토 대기</td><td>review_status = pending 항목 수</td></tr>
+    </table>
+  </section>
+
+  <!-- AP 재계산 -->
+  <section id="recalc">
+    <h3>AP 재계산</h3>
+    <p>현재 S·O·D 값을 기준으로 AIAG-VDA 룩업 테이블에 따라 모든 항목의 AP를 다시 계산합니다. 항목의 SOD 값을 수정했거나 Counter Measure 적용 후 S*/O*/D* After가 변경된 경우 실행하세요.</p>
+    <div class="warn"><p>⚠ 재계산 후 2단계 리포트를 재생성하면 AP* After 분포가 정확하게 반영됩니다.</p></div>
+    <p>재계산 완료 후 섹션 하단에 <strong>현재 AP 분포</strong> (VH/H/M/L 각 개수)가 실시간으로 표시됩니다.</p>
   </section>
 
   <hr>
