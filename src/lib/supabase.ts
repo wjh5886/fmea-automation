@@ -13,6 +13,8 @@ export type Project = {
   name: string
   description: string | null
   vehicle_model: string | null
+  folder: string | null
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }

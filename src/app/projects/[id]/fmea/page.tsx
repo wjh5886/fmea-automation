@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import type { FmeaItem, SwUnit, Project, SafetyGoal, SafetyMechanism } from '@/lib/supabase'
+import * as XLSX from 'xlsx'
+import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
 
 const FAILURE_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -407,6 +408,94 @@ export default function FmeaTablePage() {
     URL.revokeObjectURL(url)
   }
 
+  const exportXlsx = () => {
+    const HEADERS = [
+      'No','SW Unit Name','Interface Category','Interface(Variable) name',
+      'Interface(Variable) type','Range','Failure mode','Detail of the failure mode',
+      'Effect on Module','Potential Cause','Effect on System','Effect on SG',
+      'S','Preventive Action','O','Safety Mechanism','Test Method','Detection Action',
+      'D','RPN','CM?','Countermeasure',"S'","O'","D'","RPN'",
+      'Target Date','Responsibility','Reference result','Finish Date','Status',
+    ]
+    const COL_WIDTHS = [6,20,14,28,14,22,12,28,24,24,28,12,5,28,5,24,20,28,5,7,5,24,5,5,5,7,12,16,24,12,10]
+
+    const dataRows = filtered.map(i => [
+      i.item_no ?? '',
+      (i as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '',
+      i.category ?? '',
+      i.variable_name ?? '',
+      i.variable_type ?? '',
+      i.signal_range ?? '',
+      i.failure_mode ?? '',
+      i.failure_detail ?? '',
+      i.effect_module ?? '',
+      i.potential_cause ?? '',
+      i.effect_system ?? '',
+      i.effect_safety_goal ?? '',
+      i.severity ?? '',
+      i.preventive_action ?? '',
+      i.occurrence ?? '',
+      i.safety_mechanism_text ?? '',
+      i.test_method ?? '',
+      i.detection_action ?? '',
+      i.detection ?? '',
+      i.rpn ?? '',
+      i.cm_required === true ? 'Y' : i.cm_required === false ? 'N' : '',
+      i.countermeasure ?? '',
+      i.severity_after ?? '',
+      i.occurrence_after ?? '',
+      i.detection_after ?? '',
+      i.rpn_after ?? '',
+      i.target_date ?? '',
+      i.responsibility ?? '',
+      i.reference_result ?? '',
+      i.finish_date ?? '',
+      i.status ?? '',
+    ])
+
+    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...dataRows])
+
+    // 헤더 행 스타일 (굵게 + 배경색)
+    const headerFill = { fgColor: { rgb: '1E293B' } }
+    const headerFont = { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 }
+    HEADERS.forEach((_, ci) => {
+      const cell = ws[XLSX.utils.encode_cell({ r: 0, c: ci })]
+      if (cell) {
+        cell.s = { fill: { patternType: 'solid', ...headerFill }, font: headerFont, alignment: { wrapText: true, vertical: 'center' } }
+      }
+    })
+
+    // S/O/D/RPN 열 숫자 셀 스타일
+    const numCols = new Set([12, 14, 18, 19, 22, 23, 24, 25]) // S,O,D,RPN,S',O',D',RPN'
+    dataRows.forEach((_, ri) => {
+      numCols.forEach(ci => {
+        const cell = ws[XLSX.utils.encode_cell({ r: ri + 1, c: ci })]
+        if (cell && cell.v !== '') {
+          cell.t = 'n'
+          const rpn = ci === 19 || ci === 25
+          const val = Number(cell.v)
+          if (!isNaN(val)) {
+            const bg = rpn
+              ? val >= 200 ? 'FECACA' : val >= 100 ? 'FED7AA' : val >= 50 ? 'FEF08A' : 'DCFCE7'
+              : undefined
+            cell.s = bg
+              ? { fill: { patternType: 'solid', fgColor: { rgb: bg } }, alignment: { horizontal: 'center' } }
+              : { alignment: { horizontal: 'center' } }
+          }
+        }
+      })
+    })
+
+    // 열 너비
+    ws['!cols'] = COL_WIDTHS.map(w => ({ wch: w }))
+    // 첫 행 고정
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 }
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'FMEA')
+    XLSX.writeFile(wb, `${project?.name ?? 'fmea'}_FMEA.xlsx`)
+  }
+
   const filtered = items.filter(i => {
     if (filterUnit && i.sw_unit_id !== filterUnit) return false
     if (filterMode && i.failure_mode !== filterMode) return false
@@ -526,7 +615,8 @@ export default function FmeaTablePage() {
             <>AI 전체분석 ({filtered.filter(i => !i.severity || !i.occurrence || !i.detection).length}개)</>
           )}
         </button>
-        <button onClick={exportCsv} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">CSV 내보내기</button>
+        <button onClick={exportXlsx} className="border border-emerald-400 text-emerald-700 px-3 py-1.5 rounded text-sm hover:bg-emerald-50">Excel 내보내기</button>
+        <button onClick={exportCsv} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">CSV</button>
         <button onClick={() => setShowImport(true)} className="border border-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-50">JSON 가져오기</button>
       </div>
 
@@ -644,8 +734,23 @@ export default function FmeaTablePage() {
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-1.5 align-top">
-                      <input value={item.effect_safety_goal ?? ''} onChange={e => updateItem(item.id, { effect_safety_goal: e.target.value })}
-                        className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400" placeholder="SG1/SG2/SG3" />
+                      <select
+                        value={item.safety_goal_id ?? ''}
+                        onChange={e => {
+                          const sg = sgs.find(s => s.id === e.target.value)
+                          updateItem(item.id, {
+                            safety_goal_id: e.target.value || null,
+                            effect_safety_goal: sg?.sg_id ?? null,
+                          })
+                        }}
+                        className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white">
+                        <option value="">-</option>
+                        {sgs.map(sg => (
+                          <option key={sg.id} value={sg.id}>
+                            {sg.sg_id}{sg.asil ? ` (ASIL-${sg.asil})` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-2 py-1.5 text-center border-l border-slate-100 align-top"><NumInput value={item.severity} onChange={v => updateItem(item.id, { severity: v })} /></td>
                     <td className="px-2 py-1.5 align-top">
@@ -653,7 +758,27 @@ export default function FmeaTablePage() {
                         className="w-full min-w-[8rem] border border-slate-200 rounded px-1.5 py-1 text-xs resize-y focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-1.5 text-center align-top"><NumInput value={item.occurrence} onChange={v => updateItem(item.id, { occurrence: v })} /></td>
-                    <T v={item.safety_mechanism_text} />
+                    <td className="px-2 py-1.5 align-top">
+                      <select
+                        value={item.safety_mechanism_text ?? ''}
+                        onChange={e => {
+                          const sm = sms.find(s => s.sm_id === e.target.value)
+                          updateItem(item.id, {
+                            safety_mechanism_text: e.target.value || null,
+                            safety_mechanism_id: sm?.id ?? null,
+                          })
+                        }}
+                        className="w-full border border-slate-200 rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                        title={sms.find(s => s.sm_id === item.safety_mechanism_text)?.description ?? ''}
+                      >
+                        <option value="">-</option>
+                        {sms.map(sm => (
+                          <option key={sm.id} value={sm.sm_id}>
+                            {sm.sm_id} {sm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <T v={item.test_method} />
                     <td className="px-2 py-1.5 align-top">
                       <textarea value={item.detection_action ?? ''} onChange={e => updateItem(item.id, { detection_action: e.target.value })} rows={2}
