@@ -170,6 +170,8 @@ export default function PreFmeaPage() {
   const [enhancing, setEnhancing]   = useState(false)
   const [exporting, setExporting]   = useState(false)
   const [recalcingAp, setRecalcingAp] = useState(false)
+  const [showAllMonitoring, setShowAllMonitoring] = useState(false)
+  const [editableConclusion, setEditableConclusion] = useState('')
 
   // ── Report ──
   type ReportMeta = { vehicle: string; item: string; customer: string; department: string; author: string; version: string }
@@ -226,6 +228,11 @@ export default function PreFmeaPage() {
     fetchReport()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
+
+  // reportData 변경 시 conclusion 동기화
+  useEffect(() => {
+    if (reportData) setEditableConclusion(reportData.conclusion)
+  }, [reportData])
 
   // ── Toast ──
   const showToast = (msg: string, type: 'info' | 'error' = 'info') => {
@@ -600,12 +607,12 @@ export default function PreFmeaPage() {
     try {
       const params = new URLSearchParams({
         session_id: activeSession.id,
-        vehicle:    reportMeta.vehicle,
-        item:       reportMeta.item || activeSession.item_name || '',
-        customer:   reportMeta.customer,
-        department: reportMeta.department,
-        author:     reportMeta.author,
-        version:    reportMeta.version || `v${activeSession.doc_version}`,
+        vehicle:    reportMeta.vehicle    || '-',
+        item:       reportMeta.item       || activeSession.item_name || '-',
+        customer:   reportMeta.customer   || '-',
+        department: reportMeta.department || '-',
+        author:     reportMeta.author     || '-',
+        version:    reportMeta.version    || `v${activeSession.doc_version}`,
       })
       const res = await fetch(`/api/pre-fmea/report?${params}`)
       const json = await res.json()
@@ -1382,12 +1389,12 @@ export default function PreFmeaPage() {
             <p className="text-xs text-slate-400 mb-4">리포트에 포함될 프로젝트 기본 정보를 입력하세요.</p>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {([
-                ['vehicle',    '차량 모델',      'JG1'],
-                ['item',       '분석 대상',       activeSession?.item_name ?? 'SBW'],
-                ['customer',   '고객사',          'Hyundai Motor'],
-                ['department', '담당 부서',       'SW설계1팀'],
-                ['author',     '작성자',          ''],
-                ['version',    '문서 버전',        `v${activeSession?.doc_version ?? 1}`],
+                ['vehicle',    '차량 모델',   ''],
+                ['item',       '분석 아이템', ''],
+                ['customer',   '고객사',      ''],
+                ['department', '담당 부서',   ''],
+                ['author',     '작성자',      ''],
+                ['version',    '문서 버전',   ''],
               ] as [keyof ReportMeta, string, string][]).map(([key, label, placeholder]) => (
                 <div key={key}>
                   <label className="text-xs text-slate-500 font-medium block mb-1">{label}</label>
@@ -1408,7 +1415,9 @@ export default function PreFmeaPage() {
             >
               {loadingReport
                 ? <><span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />리포트 생성 중...</>
-                : '📊 FMEA 결과 리포트 생성'}
+                : reportData
+                  ? '🔄 메타 정보 반영하여 재생성'
+                  : '📊 FMEA 결과 리포트 생성'}
             </button>
           </div>
 
@@ -1647,7 +1656,7 @@ export default function PreFmeaPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {rd.actionMonitoring.items.slice(0, 50).map((it, i) => (
+                        {rd.actionMonitoring.items.slice(0, showAllMonitoring ? undefined : 50).map((it, i) => (
                           <tr key={i} className="hover:bg-slate-50">
                             <td className="px-2 py-1.5 font-mono text-slate-500">{it.fmeaId}</td>
                             <td className="px-2 py-1.5 font-mono text-slate-700 max-w-[120px] truncate" title={it.swUnit}>{it.swUnit}</td>
@@ -1667,8 +1676,22 @@ export default function PreFmeaPage() {
                       </tbody>
                     </table>
                     {rd.actionMonitoring.items.length > 50 && (
-                      <div className="text-center py-2 text-xs text-slate-400">
-                        상위 50개 표시 중 (전체 {rd.actionMonitoring.items.length}개)
+                      <div className="text-center py-2.5 border-t border-slate-100">
+                        {showAllMonitoring ? (
+                          <button
+                            onClick={() => setShowAllMonitoring(false)}
+                            className="text-xs text-slate-500 hover:text-slate-700 underline"
+                          >
+                            접기 (전체 {rd.actionMonitoring.items.length}개 표시 중)
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShowAllMonitoring(true)}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                          >
+                            전체 보기 ({rd.actionMonitoring.items.length}개) →
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1676,8 +1699,16 @@ export default function PreFmeaPage() {
 
                 {/* ⑦ Conclusion */}
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-                  <h2 className="font-semibold text-slate-800 mb-3">⑦ Conclusion</h2>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{rd.conclusion}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-slate-800">⑦ Conclusion</h2>
+                    <span className="text-xs text-slate-400">직접 수정 가능</span>
+                  </div>
+                  <textarea
+                    value={editableConclusion}
+                    onChange={e => setEditableConclusion(e.target.value)}
+                    rows={6}
+                    className="w-full text-sm text-slate-700 leading-relaxed bg-white border border-blue-200 rounded-lg px-4 py-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
                 </div>
               </>
             )
