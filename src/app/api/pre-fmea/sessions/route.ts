@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query, queryOne, execute } from '@/lib/db'
 
 export async function GET() {
-  const rows = await query('SELECT * FROM pre_fmea_sessions ORDER BY created_at DESC')
+  const rows = await query(`
+    SELECT s.*,
+      COUNT(p.id) FILTER (WHERE p.source IN ('ai', 'icd')) AS item_count
+    FROM pre_fmea_sessions s
+    LEFT JOIN pre_fmea_items p ON p.session_id = s.id
+    GROUP BY s.id
+    ORDER BY s.created_at DESC
+  `)
   return NextResponse.json(rows)
 }
 

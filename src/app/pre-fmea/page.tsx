@@ -13,6 +13,14 @@ type UploadSlot = {
   error: string | null
 }
 
+// ─── Review status label ─────────────────────────────────────────────────────
+const REVIEW_STATUS_LABEL: Record<string, string> = {
+  pending:  '검토 중',
+  accepted: '확정',
+  rejected: '반려',
+  modified: '수정됨',
+}
+
 // ─── Status badge ─────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<string, string> = {
   draft:     'bg-slate-100 text-slate-600',
@@ -794,8 +802,14 @@ export default function PreFmeaPage() {
               <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">v{s.doc_version}</span>
             )}
           </div>
-          <div className="text-xs text-slate-400 mt-0.5">
-            {new Date(s.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+            <span>{new Date(s.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            {s.item_count != null && Number(s.item_count) > 0 && (
+              <>
+                <span className="text-slate-200">|</span>
+                <span className="text-slate-500 font-medium">{Number(s.item_count).toLocaleString()}개 생성됨</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -973,7 +987,7 @@ export default function PreFmeaPage() {
           return (
             <button
               key={n}
-              onClick={() => !locked && setStep(n as 1 | 2)}
+              onClick={() => !locked && setStep(n as 1 | 2 | 3)}
               disabled={locked}
               className={`px-5 py-2.5 text-sm rounded-t transition-colors
                 ${step === n
@@ -1235,7 +1249,9 @@ export default function PreFmeaPage() {
                   {generating
                     ? <><span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />FMEA 작성 중... (30~120초)</>
                     : icdParseResult
-                      ? `▶ FMEA 자동 작성 시작 (변수 ${icdParseResult.count}개 × HAZOP 9가이드워드)`
+                      ? displayItems.length > 0
+                        ? `🔄 재실행 — 기존 ${displayItems.length.toLocaleString()}개 대체 (변수 ${icdParseResult.count}개 × HAZOP 9가이드워드)`
+                        : `▶ FMEA 자동 작성 시작 (변수 ${icdParseResult.count}개 × HAZOP 9가이드워드)`
                       : '▶ FMEA 자동 작성 시작 (Step 1 완료 후 활성화)'}
                 </button>
                 {items.length > 0 && !generating && (
@@ -1367,7 +1383,7 @@ export default function PreFmeaPage() {
                             item.review_status === 'rejected'  ? 'bg-red-100 text-red-700' :
                             item.review_status === 'modified'  ? 'bg-blue-100 text-blue-700' :
                                                                   'bg-slate-100 text-slate-500'}`}>
-                          {item.review_status}
+                          {REVIEW_STATUS_LABEL[item.review_status] ?? item.review_status}
                         </span>
                       </td>
                     </tr>
@@ -1768,7 +1784,7 @@ export default function PreFmeaPage() {
                                     item.review_status === 'modified' ? 'bg-blue-100 text-blue-700' :
                                     item.review_status === 'rejected' ? 'bg-red-100 text-red-700' :
                                     'bg-slate-100 text-slate-500'}`}>
-                                  {item.review_status}
+                                  {REVIEW_STATUS_LABEL[item.review_status] ?? item.review_status}
                                 </span>
                               </td>
                             </tr>
@@ -1895,8 +1911,8 @@ export default function PreFmeaPage() {
                   <div>
                     <h2 className="font-semibold text-slate-700 text-sm">고도화 (AI + 전문가 병합)</h2>
                     <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
-                      Gap 분석 결과를 바탕으로 AI 항목과 전문가 항목을 병합합니다.
-                      전문가 SOD 값을 우선 적용하고, AI가 놓친 항목을 추가하며, 전문가 검증을 통과하지 못한 AI 항목은 신뢰도를 낮춥니다.
+                      Gap 분석 결과를 바탕으로 전문가 검토본의 SOD 값을 우선 적용하고 누락 항목을 보완합니다.
+                      전문가 검증을 통과하지 못한 항목은 신뢰도가 낮아집니다.
                     </p>
                   </div>
                   <button

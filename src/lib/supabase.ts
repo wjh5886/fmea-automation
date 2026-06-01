@@ -53,6 +53,7 @@ export type PreFmeaSession = {
   item_name: string
   status: 'draft' | 'generated' | 'reviewed' | 'upgraded'
   doc_version: number
+  item_count?: number
   created_at: string
   updated_at: string
 }
