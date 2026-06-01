@@ -232,7 +232,7 @@ export default function PreFmeaPage() {
 
   // step 3 진입 시 리포트 자동 로드
   useEffect(() => {
-    if (!activeSession || step !== 3) return
+    if (!activeSession || step !== 2) return
     fetchReport()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
@@ -980,11 +980,11 @@ export default function PreFmeaPage() {
       <div className="flex gap-1 mb-6 border-b border-slate-200">
         {([
           [1, '1단계', '문서 업로드 & 생성'],
-          [2, '2단계', '피드백 & 고도화'],
-          [3, '3단계', 'FMEA 결과 리포트'],
+          [2, '2단계', 'FMEA 결과 리포트'],
+          [3, '3단계', '피드백 & 고도화'],
         ] as [number, string, string][]).map(([n, label, sub]) => {
-          const locked = (n === 2 && activeSession.status === 'draft') ||
-                         (n === 3 && items.length === 0)
+          const locked = (n === 2 && items.length === 0) ||
+                         (n === 3 && activeSession.status === 'draft')
           return (
             <button
               key={n}
@@ -1397,8 +1397,8 @@ export default function PreFmeaPage() {
         </div>
       )}
 
-      {/* ── Step 3: FMEA 결과 리포트 ── */}
-      {step === 3 && (
+      {/* ── Step 2: FMEA 결과 리포트 ── */}
+      {step === 2 && (
         <div className="space-y-6">
           {/* 프로젝트 메타 입력 */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
@@ -1733,13 +1733,13 @@ export default function PreFmeaPage() {
         </div>
       )}
 
-      {/* ── Step 2: 피드백 & 고도화 ── */}
-      {step === 2 && (
+      {/* ── Step 3: 피드백 & 고도화 ── */}
+      {step === 3 && (
         <div>
           {activeSession.status === 'draft' ? (
             <div className="text-center py-24 text-slate-400">
               <div className="text-4xl mb-3">🔒</div>
-              <p className="text-sm mb-4">1단계에서 FMEA 항목을 먼저 생성해야 합니다.</p>
+              <p className="text-sm mb-4">1단계에서 FMEA 항목을 생성한 후 이용할 수 있습니다.</p>
               <button
                 onClick={() => setStep(1)}
                 className="bg-slate-800 text-white px-5 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors"
@@ -1760,7 +1760,7 @@ export default function PreFmeaPage() {
                         <h2 className="font-semibold text-slate-800 text-sm">VH 항목 집중 검토</h2>
                         <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{vhItems.length}개</span>
                       </div>
-                      <span className="text-xs text-slate-400">Counter Measure 상세는 3단계 리포트에서 확인</span>
+                      <span className="text-xs text-slate-400">Counter Measure 상세는 2단계 리포트에서 확인</span>
                     </div>
                     <div className="overflow-auto rounded-lg border border-red-100" style={{ maxHeight: 320 }}>
                       <table className="text-xs w-full">
