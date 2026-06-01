@@ -123,6 +123,7 @@
     <a href="#report-meta">분석 정보 입력</a>
     <a href="#report-sections">리포트 섹션 설명</a>
     <a href="#excel">Excel 내보내기</a>
+    <a href="#sm-consistency">SM 정합성 검증 기준</a>
 
     <div class="group-label">3단계</div>
     <a href="#vh-review">VH 항목 집중 검토</a>
@@ -294,11 +295,45 @@
       <tr><td>RPN</td><td>S × O × D</td></tr>
       <tr><td>AP</td><td>Action Priority — <span class="badge badge-vh">VH</span> <span class="badge badge-h">H</span> <span class="badge badge-m">M</span> <span class="badge badge-l">L</span></td></tr>
       <tr><td>예방·검출 조치</td><td>현재 설계에 적용된 예방/검출 수단</td></tr>
+      <tr><td>D (⚠ 표시 가능)</td><td>Detection 값. SM 정합성 이상 시 주황 배경 + ⚠ 표시 (아래 설명 참고)</td></tr>
       <tr><td>입력 매칭률</td><td>DBC·사양서·DTC 입력 자료 매칭 풍부도 (0~100%). 80% 이상이면 고신뢰, 60% 미만 행은 주황색으로 강조 표시</td></tr>
       <tr><td>상태</td><td>검토 중 / 확정 / 반려 / 수정됨</td></tr>
     </table>
 
-    <p>우상단 <strong>↓ Excel 내보내기</strong> 버튼으로 26컬럼 Excel 파일을 즉시 다운로드할 수 있습니다.</p>
+    <h3 id="sm-consistency">SM 정합성 검증 기준</h3>
+    <p>Detection(D) 값과 Safety Mechanism(SM) 존재 여부는 논리적으로 일관되어야 합니다. D 컬럼에 <strong>⚠</strong> 표시가 있는 항목은 아래 기준에 따라 정합성 이상으로 판정된 항목입니다.</p>
+
+    <table>
+      <tr><th>상태</th><th>조건</th><th>의미</th><th>판정</th></tr>
+      <tr>
+        <td>SM 있음, D 낮음</td>
+        <td>검출 조치 기재됨 + D ≤ 4</td>
+        <td>SM이 감지 효과를 적절히 반영함</td>
+        <td>✅ 정합</td>
+      </tr>
+      <tr>
+        <td>SM 없음, D 높음</td>
+        <td>검출 조치 없음 + D ≥ 7</td>
+        <td>SM이 없으니 감지가 어려운 것이 맞음</td>
+        <td>✅ 정합</td>
+      </tr>
+      <tr>
+        <td style="color:#c2410c;font-weight:600;">SM 있음, D 높음</td>
+        <td>검출 조치 기재됨 + D ≥ 8</td>
+        <td>SM이 있는데 D가 높음 → SM 효과가 D 값에 반영되지 않은 것으로 의심</td>
+        <td>⚠️ 검토 필요</td>
+      </tr>
+      <tr>
+        <td style="color:#c2410c;font-weight:600;">SM 없음, D 낮음</td>
+        <td>검출 조치 없음 + D ≤ 3</td>
+        <td>SM이 없는데 D가 낮음 → 감지 근거 불명확, 낙관적 평가 의심</td>
+        <td>⚠️ 검토 필요</td>
+      </tr>
+    </table>
+
+    <div class="info"><p>💡 SM 정합성 통계는 2단계 FMEA 결과 리포트의 <strong>② SM 정합성 검증</strong> 섹션에서 전체 항목 기준으로 확인할 수 있습니다. Excel 내보내기에는 포함되지 않습니다.</p></div>
+
+    <p>우상단 <strong>↓ Excel 내보내기</strong> 버튼으로 26컬럼 FMEA Excel 파일이 다운로드됩니다.</p>
   </section>
 
   <hr>

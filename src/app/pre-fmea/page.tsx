@@ -71,6 +71,16 @@ function ApBadge({ ap }: { ap: string | null }) {
   )
 }
 
+// ─── SM 정합성 판별 ───────────────────────────────────────────────────────────
+// SM 있음+D≥8: SM 효과 미반영 / SM 없음+D≤3: 감지 근거 불명확
+function getSmConsistency(detection: number | null, detectionAction: string | null): 'ok' | 'warn_has_sm' | 'warn_no_sm' | null {
+  if (!detection) return null
+  const hasSM = !!(detectionAction && detectionAction.trim().length > 2 && detectionAction.trim() !== '-')
+  if (hasSM && detection >= 8) return 'warn_has_sm'
+  if (!hasSM && detection <= 3) return 'warn_no_sm'
+  return 'ok'
+}
+
 // ─── Upload card ──────────────────────────────────────────────────────────────
 function UploadCard({
   title, description, accept, slot, onFile, disabled,
@@ -1372,7 +1382,21 @@ export default function PreFmeaPage() {
                       <td className="px-2 py-2 text-slate-600 truncate" title={item.potential_cause ?? ''}>{item.potential_cause ?? '-'}</td>
                       <td className="px-2 py-2 text-center font-medium text-slate-700">{item.severity ?? '-'}</td>
                       <td className="px-2 py-2 text-center font-medium text-slate-700">{item.occurrence ?? '-'}</td>
-                      <td className="px-2 py-2 text-center font-medium text-slate-700">{item.detection ?? '-'}</td>
+                      <td className={`px-2 py-2 text-center font-medium ${
+                        getSmConsistency(item.detection, item.detection_action) === 'warn_has_sm' ? 'bg-orange-100 text-orange-700' :
+                        getSmConsistency(item.detection, item.detection_action) === 'warn_no_sm'  ? 'bg-orange-100 text-orange-700' :
+                        'text-slate-700'}`}
+                        title={
+                          getSmConsistency(item.detection, item.detection_action) === 'warn_has_sm' ? 'SM이 있으나 D 값이 높음 — SM 효과가 D 값에 반영되지 않았을 수 있습니다' :
+                          getSmConsistency(item.detection, item.detection_action) === 'warn_no_sm'  ? 'SM이 없는데 D 값이 낮음 — 감지 근거 확인 필요' :
+                          undefined
+                        }
+                      >
+                        {item.detection ?? '-'}
+                        {getSmConsistency(item.detection, item.detection_action) !== 'ok' &&
+                         getSmConsistency(item.detection, item.detection_action) !== null &&
+                          <span className="ml-0.5">⚠</span>}
+                      </td>
                       <td className="px-2 py-2 text-center"><RpnBadge rpn={item.rpn} /></td>
                       <td className="px-2 py-2 text-center"><ApBadge ap={item.action_priority ?? null} /></td>
                       <td className="px-2 py-2 text-slate-600 truncate" title={item.preventive_action ?? ''}>{item.preventive_action ?? '-'}</td>
@@ -1502,6 +1526,42 @@ export default function PreFmeaPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* ② SM 정합성 검증 */}
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <h2 className="font-semibold text-slate-800 mb-1">② SM 정합성 검증</h2>
+                  <p className="text-xs text-slate-400 mb-4">Detection 값과 Safety Mechanism 존재 여부의 논리적 일관성을 검증합니다.</p>
+                  {(() => {
+                    const warnHasSm = displayItems.filter(i => getSmConsistency(i.detection, i.detection_action) === 'warn_has_sm').length
+                    const warnNoSm  = displayItems.filter(i => getSmConsistency(i.detection, i.detection_action) === 'warn_no_sm').length
+                    const total     = displayItems.length
+                    const okCount   = total - warnHasSm - warnNoSm
+                    return (
+                      <>
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          {[
+                            { label: '정합성 이상', val: warnHasSm + warnNoSm, color: warnHasSm + warnNoSm > 0 ? 'text-orange-600' : 'text-slate-400', icon: '⚠️' },
+                            { label: 'SM 있음, D≥8', val: warnHasSm, color: warnHasSm > 0 ? 'text-orange-500' : 'text-slate-400', icon: '📋' },
+                            { label: 'SM 없음, D≤3', val: warnNoSm,  color: warnNoSm  > 0 ? 'text-orange-500' : 'text-slate-400', icon: '🔍' },
+                          ].map(({ label, val, color, icon }) => (
+                            <div key={label} className="bg-slate-50 rounded-lg p-4 text-center">
+                              <div className="text-xl mb-1">{icon}</div>
+                              <div className={`text-xl font-bold ${color}`}>{val.toLocaleString()}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 pt-3 border-t border-slate-100">
+                          <span>전체 <strong className="text-slate-700">{total.toLocaleString()}</strong>개</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="text-emerald-600">✓ 정합성 통과 <strong>{okCount.toLocaleString()}</strong>개</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="text-orange-500">⚠ 검토 필요 <strong>{(warnHasSm + warnNoSm).toLocaleString()}</strong>개</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
 
                 {/* ③ SOD Matrix */}
