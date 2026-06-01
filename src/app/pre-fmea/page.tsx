@@ -665,7 +665,8 @@ export default function PreFmeaPage() {
   const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
     if (!confirm('이 세션을 삭제하시겠습니까? 모든 항목과 문서가 함께 삭제됩니다.')) return
-    await fetch(`/api/pre-fmea/sessions/${sessionId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/pre-fmea/sessions/${sessionId}`, { method: 'DELETE' })
+    if (!res.ok) { showToast('세션 삭제에 실패했습니다.', 'error'); return }
     setSessions(prev => prev.filter(s => s.id !== sessionId))
     if (activeSession?.id === sessionId) {
       backToSessions()
@@ -840,7 +841,7 @@ export default function PreFmeaPage() {
             <p className="text-sm text-slate-500 mt-1">아이템별 SW FMEA 프로젝트 관리</p>
           </div>
           <button
-            onClick={() => { setNewItemName(''); setShowNewModal(true) }}
+            onClick={() => { setNewItemName('SBW'); setShowNewModal(true) }}
             className="bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors font-medium"
           >
             + 새 세션 만들기
@@ -1738,7 +1739,13 @@ export default function PreFmeaPage() {
           {activeSession.status === 'draft' ? (
             <div className="text-center py-24 text-slate-400">
               <div className="text-4xl mb-3">🔒</div>
-              <p className="text-sm">1단계에서 FMEA 항목을 먼저 생성해야 합니다.</p>
+              <p className="text-sm mb-4">1단계에서 FMEA 항목을 먼저 생성해야 합니다.</p>
+              <button
+                onClick={() => setStep(1)}
+                className="bg-slate-800 text-white px-5 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors"
+              >
+                ← 1단계로 이동
+              </button>
             </div>
           ) : (
             <div className="space-y-6">
