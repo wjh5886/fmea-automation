@@ -1305,7 +1305,7 @@ export default function PreFmeaPage() {
               })}
               <span className="text-slate-300">|</span>
               <span className="text-slate-600">
-                고확신 ≥80% <strong className="text-emerald-600">{highConfCount}</strong>개
+                입력 매칭률 ≥80% <strong className="text-emerald-600">{highConfCount}</strong>개
               </span>
               <div className="flex-1" />
               <button
@@ -1343,7 +1343,7 @@ export default function PreFmeaPage() {
                 </colgroup>
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                   <tr>
-                    {['No','SW 컴포넌트','기능명','고장 형태','상세 내용','모듈 영향','시스템 영향','잠재 원인','S','O','D','RPN','AP','예방 조치','검출 조치','확신도','상태'].map((h, i) => (
+                    {['No','SW 컴포넌트','기능명','고장 형태','상세 내용','모듈 영향','시스템 영향','잠재 원인','S','O','D','RPN','AP','예방 조치','검출 조치','입력 매칭률','상태'].map((h, i) => (
                       <th key={i} className="px-2 py-2 text-left font-medium text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
                         {h}
                       </th>
