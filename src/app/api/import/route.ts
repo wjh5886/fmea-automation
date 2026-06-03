@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, queryOne, getPool } from '@/lib/db'
+import { query, queryOne } from '@/lib/db'
 
 const VALID_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -65,33 +65,22 @@ export async function POST(req: NextRequest) {
   const unitMap = await ensureUnits(rows, project_id)
   const items = parseRows(rows, project_id, unitMap)
 
-  const pool = getPool()
-  const client = await pool.connect()
   let inserted = 0
-  try {
-    await client.query('BEGIN')
-    for (const item of items) {
-      await client.query(
-        `INSERT INTO fmea_items
-         (project_id, sw_unit_id, item_no, category, variable_name, variable_type,
-          failure_mode, failure_detail, effect_module, effect_system, effect_safety_goal,
-          severity, occurrence, detection, preventive_action, detection_action,
-          cm_required, countermeasure, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'draft')`,
-        [item.project_id, item.sw_unit_id, item.item_no, item.category, item.variable_name,
-         item.variable_type, item.failure_mode, item.failure_detail, item.effect_module,
-         item.effect_system, item.effect_safety_goal, item.severity, item.occurrence,
-         item.detection, item.preventive_action, item.detection_action, item.cm_required,
-         item.countermeasure],
-      )
-      inserted++
-    }
-    await client.query('COMMIT')
-  } catch (e) {
-    await client.query('ROLLBACK')
-    throw e
-  } finally {
-    client.release()
+  for (const item of items) {
+    await query(
+      `INSERT INTO fmea_items
+       (project_id, sw_unit_id, item_no, category, variable_name, variable_type,
+        failure_mode, failure_detail, effect_module, effect_system, effect_safety_goal,
+        severity, occurrence, detection, preventive_action, detection_action,
+        cm_required, countermeasure, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'draft')`,
+      [item.project_id, item.sw_unit_id, item.item_no, item.category, item.variable_name,
+       item.variable_type, item.failure_mode, item.failure_detail, item.effect_module,
+       item.effect_system, item.effect_safety_goal, item.severity, item.occurrence,
+       item.detection, item.preventive_action, item.detection_action, item.cm_required,
+       item.countermeasure],
+    )
+    inserted++
   }
 
   return NextResponse.json({ inserted, total: items.length })

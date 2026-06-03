@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, getPool } from '@/lib/db'
+import { query } from '@/lib/db'
 import { calculateAPSafe } from '@/lib/ap-calculator'
 
 function normalize(s: unknown): string {
@@ -151,40 +151,29 @@ export async function POST(req: NextRequest) {
     merged.forEach((m, i) => { m.item_no = String(i + 1).padStart(3, '0') })
 
     // DB 저장
-    const pool = getPool()
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      await client.query("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'merged'", [session_id])
+    await query("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'merged'", [session_id])
 
-      for (const m of merged) {
-        await client.query(
-          `INSERT INTO pre_fmea_items
-           (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
-            effect_local, effect_system, potential_cause, severity, occurrence, detection,
-            preventive_action, detection_action, confidence_score, action_priority, source, review_status, human_override)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'merged',$17,$18)`,
-          [m.session_id, m.item_no, m.sw_component, m.function_name, m.failure_mode,
-           m.failure_detail, m.effect_local, m.effect_system, m.potential_cause,
-           m.severity, m.occurrence, m.detection, m.preventive_action, m.detection_action,
-           m.confidence_score, m.action_priority, m.review_status,
-           m.human_override ? JSON.stringify(m.human_override) : null],
-        )
-      }
-
-      await client.query(
-        `UPDATE pre_fmea_sessions
-         SET status = 'upgraded', doc_version = doc_version + 1, updated_at = now()
-         WHERE id = $1`,
-        [session_id],
+    for (const m of merged) {
+      await query(
+        `INSERT INTO pre_fmea_items
+         (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
+          effect_local, effect_system, potential_cause, severity, occurrence, detection,
+          preventive_action, detection_action, confidence_score, action_priority, source, review_status, human_override)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'merged',$17,$18)`,
+        [m.session_id, m.item_no, m.sw_component, m.function_name, m.failure_mode,
+         m.failure_detail, m.effect_local, m.effect_system, m.potential_cause,
+         m.severity, m.occurrence, m.detection, m.preventive_action, m.detection_action,
+         m.confidence_score, m.action_priority, m.review_status,
+         m.human_override ? JSON.stringify(m.human_override) : null],
       )
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
     }
+
+    await query(
+      `UPDATE pre_fmea_sessions
+       SET status = 'upgraded', doc_version = doc_version + 1, updated_at = now()
+       WHERE id = $1`,
+      [session_id],
+    )
 
     const humanMatched = usedHumanKeys.size
     const humanUniqueTotal = humanMap.size

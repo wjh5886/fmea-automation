@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, getPool } from '@/lib/db'
+import { query } from '@/lib/db'
 import { storageDownload } from '@/lib/supabase-server'
 import * as XLSX from 'xlsx'
 
@@ -243,48 +243,37 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. DB 저장 (트랜잭션)
-    const pool = getPool()
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      await client.query("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'human'", [session_id])
-      await client.query('DELETE FROM pre_fmea_gaps WHERE session_id = $1', [session_id])
+    // 7. DB 저장
+    await query("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'human'", [session_id])
+    await query('DELETE FROM pre_fmea_gaps WHERE session_id = $1', [session_id])
 
-      for (const h of humanItems) {
-        await client.query(
-          `INSERT INTO pre_fmea_items
-           (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
-            effect_local, effect_system, severity, occurrence, detection,
-            preventive_action, detection_action, confidence_score, source, review_status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,1.0,'human','accepted')`,
-          [h.session_id, h.item_no, h.sw_component, h.function_name, h.failure_mode,
-           h.failure_detail, h.effect_local, h.effect_system, h.severity, h.occurrence,
-           h.detection, h.preventive_action, h.detection_action],
-        )
-      }
-
-      for (const g of gaps) {
-        await client.query(
-          `INSERT INTO pre_fmea_gaps
-           (session_id, gap_type, field_name, sw_component, failure_mode, ai_value, human_value, severity, lesson)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [g.session_id, g.gap_type, g.field_name, g.sw_component, g.failure_mode,
-           g.ai_value, g.human_value, g.severity, g.lesson],
-        )
-      }
-
-      await client.query(
-        "UPDATE pre_fmea_sessions SET status = 'reviewed', updated_at = now() WHERE id = $1",
-        [session_id],
+    for (const h of humanItems) {
+      await query(
+        `INSERT INTO pre_fmea_items
+         (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
+          effect_local, effect_system, severity, occurrence, detection,
+          preventive_action, detection_action, confidence_score, source, review_status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,1.0,'human','accepted')`,
+        [h.session_id, h.item_no, h.sw_component, h.function_name, h.failure_mode,
+         h.failure_detail, h.effect_local, h.effect_system, h.severity, h.occurrence,
+         h.detection, h.preventive_action, h.detection_action],
       )
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
     }
+
+    for (const g of gaps) {
+      await query(
+        `INSERT INTO pre_fmea_gaps
+         (session_id, gap_type, field_name, sw_component, failure_mode, ai_value, human_value, severity, lesson)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [g.session_id, g.gap_type, g.field_name, g.sw_component, g.failure_mode,
+         g.ai_value, g.human_value, g.severity, g.lesson],
+      )
+    }
+
+    await query(
+      "UPDATE pre_fmea_sessions SET status = 'reviewed', updated_at = now() WHERE id = $1",
+      [session_id],
+    )
 
     const uniqueHumanKeys = seenHumanKeys.size
     return NextResponse.json({

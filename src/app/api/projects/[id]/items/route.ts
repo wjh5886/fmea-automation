@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, queryOne, execute, getPool } from '@/lib/db'
+import { query, queryOne, execute } from '@/lib/db'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -26,37 +26,26 @@ export async function POST(req: NextRequest, { params }: Params) {
   const body = await req.json()
   // bulk insert
   if (Array.isArray(body)) {
-    const pool = getPool()
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const inserted: unknown[] = []
-      for (const item of body) {
-        const { rows } = await client.query(
-          `INSERT INTO fmea_items (project_id, sw_unit_id, item_no, category, variable_name, variable_type,
-            failure_mode, failure_detail, effect_module, effect_system, effect_safety_goal,
-            severity, occurrence, detection, preventive_action, detection_action,
-            cm_required, countermeasure, status, ai_generated)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-           RETURNING *`,
-          [id, item.sw_unit_id ?? null, item.item_no ?? null, item.category ?? null,
-           item.variable_name, item.variable_type ?? null, item.failure_mode ?? null,
-           item.failure_detail ?? null, item.effect_module ?? null, item.effect_system ?? null,
-           item.effect_safety_goal ?? null, item.severity ?? null, item.occurrence ?? null,
-           item.detection ?? null, item.preventive_action ?? null, item.detection_action ?? null,
-           item.cm_required ?? null, item.countermeasure ?? null,
-           item.status ?? 'draft', item.ai_generated ?? false],
-        )
-        inserted.push(rows[0])
-      }
-      await client.query('COMMIT')
-      return NextResponse.json({ inserted: inserted.length }, { status: 201 })
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
+    const inserted: unknown[] = []
+    for (const item of body) {
+      const rows = await query(
+        `INSERT INTO fmea_items (project_id, sw_unit_id, item_no, category, variable_name, variable_type,
+          failure_mode, failure_detail, effect_module, effect_system, effect_safety_goal,
+          severity, occurrence, detection, preventive_action, detection_action,
+          cm_required, countermeasure, status, ai_generated)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+         RETURNING *`,
+        [id, item.sw_unit_id ?? null, item.item_no ?? null, item.category ?? null,
+         item.variable_name, item.variable_type ?? null, item.failure_mode ?? null,
+         item.failure_detail ?? null, item.effect_module ?? null, item.effect_system ?? null,
+         item.effect_safety_goal ?? null, item.severity ?? null, item.occurrence ?? null,
+         item.detection ?? null, item.preventive_action ?? null, item.detection_action ?? null,
+         item.cm_required ?? null, item.countermeasure ?? null,
+         item.status ?? 'draft', item.ai_generated ?? false],
+      )
+      if (rows[0]) inserted.push(rows[0])
     }
+    return NextResponse.json({ inserted: inserted.length }, { status: 201 })
   }
   // single insert
   const item = body

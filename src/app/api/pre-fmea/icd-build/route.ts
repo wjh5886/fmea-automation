@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import mammoth from 'mammoth'
-import { query, execute, getPool } from '@/lib/db'
+import { query, execute } from '@/lib/db'
 import { storageDownload } from '@/lib/supabase-server'
 import {
   parseDbcRich,
@@ -21,25 +21,14 @@ import {
 
 async function saveVariables(session_id: string, vars: BuiltIcdVariable[]): Promise<void> {
   await execute('DELETE FROM pre_fmea_icd_variables WHERE session_id = $1', [session_id])
-  const pool = getPool()
-  const dbClient = await pool.connect()
-  try {
-    await dbClient.query('BEGIN')
-    for (const v of vars) {
-      await dbClient.query(
-        `INSERT INTO pre_fmea_icd_variables
-         (session_id, sw_component, variable_name, variable_type, direction, data_type, signal_range, unit, description, sort_order)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [session_id, v.sw_component, v.variable_name, v.variable_type, v.direction,
-         v.data_type, v.signal_range, v.unit, v.description, v.sort_order],
-      )
-    }
-    await dbClient.query('COMMIT')
-  } catch (e) {
-    await dbClient.query('ROLLBACK')
-    throw e
-  } finally {
-    dbClient.release()
+  for (const v of vars) {
+    await query(
+      `INSERT INTO pre_fmea_icd_variables
+       (session_id, sw_component, variable_name, variable_type, direction, data_type, signal_range, unit, description, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [session_id, v.sw_component, v.variable_name, v.variable_type, v.direction,
+       v.data_type, v.signal_range, v.unit, v.description, v.sort_order],
+    )
   }
 }
 

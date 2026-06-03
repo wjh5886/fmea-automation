@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, execute, queryOne, getPool } from '@/lib/db'
+import { query, execute } from '@/lib/db'
 import { storageDownload } from '@/lib/supabase-server'
 import { parseIcdExcel } from '@/lib/icd-parser'
 
@@ -29,25 +29,14 @@ export async function POST(req: NextRequest) {
     // Replace existing variables for this session
     await execute('DELETE FROM pre_fmea_icd_variables WHERE session_id = $1', [session_id])
 
-    const pool = getPool()
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      for (const v of vars) {
-        await client.query(
-          `INSERT INTO pre_fmea_icd_variables
-           (session_id, sw_component, variable_name, variable_type, direction, data_type, signal_range, unit, description, sort_order)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-          [session_id, v.sw_component, v.variable_name, v.variable_type, v.direction,
-           v.data_type, v.signal_range, v.unit, v.description, v.sort_order],
-        )
-      }
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
+    for (const v of vars) {
+      await query(
+        `INSERT INTO pre_fmea_icd_variables
+         (session_id, sw_component, variable_name, variable_type, direction, data_type, signal_range, unit, description, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [session_id, v.sw_component, v.variable_name, v.variable_type, v.direction,
+         v.data_type, v.signal_range, v.unit, v.description, v.sort_order],
+      )
     }
 
     // Return summary grouped by component

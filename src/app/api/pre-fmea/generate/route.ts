@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import mammoth from 'mammoth'
-import { queryOne, query, execute, getPool } from '@/lib/db'
+import { queryOne, query, execute } from '@/lib/db'
 import { storageDownload } from '@/lib/supabase-server'
 import { calculateAPSafe } from '@/lib/ap-calculator'
 
@@ -391,29 +391,18 @@ async function handleIcdGenerate(
   // Save to DB
   await execute("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'ai'", [session_id])
 
-  const pool = getPool()
-  const dbClient = await pool.connect()
-  try {
-    await dbClient.query('BEGIN')
-    for (const row of allRows) {
-      await dbClient.query(
-        `INSERT INTO pre_fmea_items
-         (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
-          effect_local, effect_system, potential_cause, severity, occurrence, detection,
-          preventive_action, detection_action, confidence_score, action_priority, source, review_status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'ai','pending')`,
-        [row.session_id, row.item_no, row.sw_component, row.function_name, row.failure_mode,
-         row.failure_detail, row.effect_local, row.effect_system, row.potential_cause,
-         row.severity, row.occurrence, row.detection, row.preventive_action,
-         row.detection_action, row.confidence_score, row.action_priority],
-      )
-    }
-    await dbClient.query('COMMIT')
-  } catch (e) {
-    await dbClient.query('ROLLBACK')
-    throw e
-  } finally {
-    dbClient.release()
+  for (const row of allRows) {
+    await query(
+      `INSERT INTO pre_fmea_items
+       (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
+        effect_local, effect_system, potential_cause, severity, occurrence, detection,
+        preventive_action, detection_action, confidence_score, action_priority, source, review_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'ai','pending')`,
+      [row.session_id, row.item_no, row.sw_component, row.function_name, row.failure_mode,
+       row.failure_detail, row.effect_local, row.effect_system, row.potential_cause,
+       row.severity, row.occurrence, row.detection, row.preventive_action,
+       row.detection_action, row.confidence_score, row.action_priority],
+    )
   }
 
   await execute(
@@ -572,29 +561,18 @@ export async function POST(req: NextRequest) {
     // 8. 기존 AI 항목 삭제 후 재삽입
     await execute("DELETE FROM pre_fmea_items WHERE session_id = $1 AND source = 'ai'", [session_id])
 
-    const pool = getPool()
-    const dbClient = await pool.connect()
-    try {
-      await dbClient.query('BEGIN')
-      for (const row of rows) {
-        await dbClient.query(
-          `INSERT INTO pre_fmea_items
-           (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
-            effect_local, effect_system, potential_cause, severity, occurrence, detection,
-            preventive_action, detection_action, confidence_score, action_priority, source, review_status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'ai','pending')`,
-          [row.session_id, row.item_no, row.sw_component, row.function_name, row.failure_mode,
-           row.failure_detail, row.effect_local, row.effect_system, row.potential_cause,
-           row.severity, row.occurrence, row.detection, row.preventive_action,
-           row.detection_action, row.confidence_score, row.action_priority],
-        )
-      }
-      await dbClient.query('COMMIT')
-    } catch (e) {
-      await dbClient.query('ROLLBACK')
-      throw e
-    } finally {
-      dbClient.release()
+    for (const row of rows) {
+      await query(
+        `INSERT INTO pre_fmea_items
+         (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
+          effect_local, effect_system, potential_cause, severity, occurrence, detection,
+          preventive_action, detection_action, confidence_score, action_priority, source, review_status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'ai','pending')`,
+        [row.session_id, row.item_no, row.sw_component, row.function_name, row.failure_mode,
+         row.failure_detail, row.effect_local, row.effect_system, row.potential_cause,
+         row.severity, row.occurrence, row.detection, row.preventive_action,
+         row.detection_action, row.confidence_score, row.action_priority],
+      )
     }
 
     await execute(

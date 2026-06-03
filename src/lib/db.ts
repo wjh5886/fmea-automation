@@ -1,24 +1,29 @@
-import { Pool } from 'pg'
+import { createClient } from '@supabase/supabase-js'
 
-let pool: Pool | null = null
+let _client: ReturnType<typeof createClient> | null = null
 
-export function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    })
+function getClient() {
+  if (!_client) {
+    _client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    )
   }
-  return pool
+  return _client
 }
 
 export async function query<T = Record<string, unknown>>(
   sql: string,
   params?: unknown[],
 ): Promise<T[]> {
-  const client = getPool()
-  const result = await client.query(sql, params)
-  return result.rows as T[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (getClient() as any).rpc('exec_sql', {
+    query_text: sql,
+    params: params ?? [],
+  })
+  if (error) throw new Error(`DB error: ${error.message}`)
+  return (Array.isArray(data) ? data : []) as T[]
 }
 
 export async function queryOne<T = Record<string, unknown>>(
@@ -30,6 +35,5 @@ export async function queryOne<T = Record<string, unknown>>(
 }
 
 export async function execute(sql: string, params?: unknown[]): Promise<void> {
-  const client = getPool()
-  await client.query(sql, params)
+  await query(sql, params)
 }
