@@ -4,36 +4,49 @@ import { useMemo, useState } from 'react'
 import type { FmeaItem, SwUnit } from '@/lib/supabase'
 
 type InterfaceRow = {
+  key: string
   component: string
   variableName: string
   category: string | null
   variableType: string | null
+  itemIds: string[]
 }
+
+const CATEGORY_OPTIONS = ['', 'External', 'Internal']
 
 export default function ReferenceDataPanel({
   items,
+  projectId,
+  onUpdated,
 }: {
   items: FmeaItem[]
+  projectId: string
+  onUpdated: () => void
 }) {
   const [search, setSearch] = useState('')
+  const [savingKey, setSavingKey] = useState<string | null>(null)
 
   const interfaceRows = useMemo<InterfaceRow[]>(() => {
-    const seen = new Set<string>()
-    const rows: InterfaceRow[] = []
+    const map = new Map<string, InterfaceRow>()
     for (const i of items) {
       const component = (i as FmeaItem & { sw_units?: SwUnit }).sw_units?.name ?? '미분류'
       const variableName = i.variable_name ?? ''
       const key = `${component}::${variableName}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      rows.push({
+      const existing = map.get(key)
+      if (existing) {
+        existing.itemIds.push(i.id)
+        continue
+      }
+      map.set(key, {
+        key,
         component,
         variableName,
         category: i.category,
         variableType: i.variable_type,
+        itemIds: [i.id],
       })
     }
-    return rows.sort((a, b) => a.component.localeCompare(b.component) || a.variableName.localeCompare(b.variableName))
+    return Array.from(map.values()).sort((a, b) => a.component.localeCompare(b.component) || a.variableName.localeCompare(b.variableName))
   }, [items])
 
   const q = search.trim().toLowerCase()
@@ -41,6 +54,22 @@ export default function ReferenceDataPanel({
   const filteredInterfaces = q
     ? interfaceRows.filter(r => r.component.toLowerCase().includes(q) || r.variableName.toLowerCase().includes(q))
     : interfaceRows
+
+  const updateRow = async (row: InterfaceRow, patch: Partial<Pick<InterfaceRow, 'category' | 'variableType'>>) => {
+    setSavingKey(row.key)
+    const body: Record<string, unknown> = {}
+    if ('category' in patch) body.category = patch.category || null
+    if ('variableType' in patch) body.variable_type = patch.variableType || null
+    await Promise.all(row.itemIds.map(itemId =>
+      fetch(`/api/projects/${projectId}/items`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId, ...body }),
+      })
+    ))
+    setSavingKey(null)
+    onUpdated()
+  }
 
   const Th = ({ children }: { children: React.ReactNode }) => (
     <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">{children}</th>
@@ -78,18 +107,34 @@ export default function ReferenceDataPanel({
           <tbody className="divide-y divide-slate-100">
             {filteredInterfaces.length === 0 ? (
               <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-400">데이터가 없습니다.</td></tr>
-            ) : filteredInterfaces.map((r, idx) => (
-              <tr key={idx} className="hover:bg-slate-50">
+            ) : filteredInterfaces.map(r => (
+              <tr key={r.key} className="hover:bg-slate-50">
                 <Td cls="font-mono">{r.component}</Td>
                 <Td cls="font-mono text-slate-800">{r.variableName}</Td>
                 <Td>
-                  {r.category ? (
-                    <span className={`px-1.5 py-0.5 rounded ${r.category === 'External' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {r.category}
-                    </span>
-                  ) : '-'}
+                  <select
+                    value={r.category ?? ''}
+                    onChange={e => updateRow(r, { category: e.target.value })}
+                    disabled={savingKey === r.key}
+                    className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                  >
+                    {CATEGORY_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt || '-'}</option>
+                    ))}
+                  </select>
                 </Td>
-                <Td>{r.variableType ?? '-'}</Td>
+                <Td>
+                  <input
+                    type="text"
+                    defaultValue={r.variableType ?? ''}
+                    onBlur={e => {
+                      if (e.target.value !== (r.variableType ?? '')) updateRow(r, { variableType: e.target.value })
+                    }}
+                    disabled={savingKey === r.key}
+                    placeholder="-"
+                    className="border border-slate-200 rounded px-1.5 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                  />
+                </Td>
               </tr>
             ))}
           </tbody>

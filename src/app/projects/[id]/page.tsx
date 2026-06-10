@@ -169,11 +169,11 @@ export default function ProjectDetailPage() {
             className="border border-red-200 text-red-500 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition-colors">
             🗑️ 삭제
           </button>
-          <Link href={`/projects/${id}/fmea?view=report`} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors">
-            📊 분석 리포트 →
-          </Link>
           <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-700 transition-colors">
             📋 FMEA 테이블 →
+          </Link>
+          <Link href={`/projects/${id}/fmea?view=report`} className="bg-white border border-slate-300 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-50 transition-colors">
+            📊 분석 리포트 →
           </Link>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function ProjectDetailPage() {
 
       {/* 인터페이스 탭 */}
       {tab === 'reference' && (
-        <ReferenceDataPanel items={items} />
+        <ReferenceDataPanel items={items} projectId={id} onUpdated={load} />
       )}
 
       {/* O값 평가 탭 */}
