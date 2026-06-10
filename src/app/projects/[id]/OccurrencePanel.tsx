@@ -13,7 +13,7 @@ import {
   oColorClass,
 } from '@/lib/occurrence'
 
-type ApplyState = 'idle' | 'applying' | 'done'
+type ApplyState = 'idle' | 'saving' | 'saved'
 
 export default function OccurrencePanel({
   units,
@@ -42,22 +42,10 @@ export default function OccurrencePanel({
 
   const getSel = (id: string): OSelections => selections[id] ?? DEFAULT_O_SELECTIONS
 
-  const setSel = (id: string, patch: Partial<OSelections>) => {
-    setSelections(prev => ({ ...prev, [id]: { ...getSel(id), ...patch } }))
-    setOverrides(prev => ({ ...prev, [id]: null }))
-  }
-
-  const oValue = (id: string): number => {
-    const ov = overrides[id]
-    if (ov != null) return ov
-    return calcOccurrence(getSel(id))
-  }
-
-  const apply = async (unitId: string) => {
-    const o = oValue(unitId)
+  const applyO = async (unitId: string, o: number) => {
     const targets = items.filter(i => i.sw_unit_id === unitId)
     if (targets.length === 0) return
-    setApplyState(prev => ({ ...prev, [unitId]: 'applying' }))
+    setApplyState(prev => ({ ...prev, [unitId]: 'saving' }))
     await Promise.all(targets.map(item => {
       const s = item.severity ?? 0
       const d = item.detection ?? 0
@@ -68,8 +56,36 @@ export default function OccurrencePanel({
         body: JSON.stringify({ item_id: item.id, occurrence: o, rpn }),
       })
     }))
-    setApplyState(prev => ({ ...prev, [unitId]: 'done' }))
+    setApplyState(prev => ({ ...prev, [unitId]: 'saved' }))
     onApplied()
+  }
+
+  const setSel = (id: string, patch: Partial<OSelections>) => {
+    const newSel = { ...getSel(id), ...patch }
+    setSelections(prev => ({ ...prev, [id]: newSel }))
+    setOverrides(prev => ({ ...prev, [id]: null }))
+    applyO(id, calcOccurrence(newSel))
+  }
+
+  const setOverride = (id: string, value: number | null) => {
+    setOverrides(prev => ({ ...prev, [id]: value }))
+  }
+
+  const commitOverride = (id: string) => {
+    const ov = overrides[id]
+    const o = ov != null ? ov : calcOccurrence(getSel(id))
+    applyO(id, o)
+  }
+
+  const resetOverride = (id: string) => {
+    setOverrides(prev => ({ ...prev, [id]: null }))
+    applyO(id, calcOccurrence(getSel(id)))
+  }
+
+  const oValue = (id: string): number => {
+    const ov = overrides[id]
+    if (ov != null) return ov
+    return calcOccurrence(getSel(id))
   }
 
   const Select = ({ value, options, onChange }: { value: number; options: { value: number; label: string }[]; onChange: (v: number) => void }) => (
@@ -85,7 +101,7 @@ export default function OccurrencePanel({
   return (
     <div>
       <p className="text-sm text-slate-500 mb-3">
-        컴포넌트별 변경 이력을 평가하여 Occurrence(O)값을 자동 계산합니다. &ldquo;적용&rdquo;을 누르면 해당 컴포넌트의 모든 FMEA 항목에 O값(및 RPN)이 일괄 반영됩니다.
+        컴포넌트별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 컴포넌트의 모든 FMEA 항목에 즉시 반영됩니다.
       </p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
@@ -99,12 +115,11 @@ export default function OccurrencePanel({
               <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">변경 유무</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">O값</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">수동 입력</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">적용</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {componentRows.length === 0 ? (
-              <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-400">컴포넌트가 없습니다.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">컴포넌트가 없습니다.</td></tr>
             ) : componentRows.map(r => {
               const sel = getSel(r.id)
               const o = oValue(r.id)
@@ -127,35 +142,32 @@ export default function OccurrencePanel({
                     <Select value={sel.hasChange} options={HAS_CHANGE_OPTIONS} onChange={v => setSel(r.id, { hasChange: v })} />
                   </td>
                   <td className="px-3 py-2 align-top text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${oColorClass(o)}`}>{o}</span>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${oColorClass(o)}`}>{o}</span>
+                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                        {state === 'saving' ? '저장 중...' : state === 'saved' ? '✓ 반영됨' : ''}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-3 py-2 align-top text-center">
                     <div className="flex items-center justify-center gap-1">
                       <input
                         type="number" min={1} max={10}
                         value={overrides[r.id] ?? ''}
-                        onChange={e => setOverrides(prev => ({ ...prev, [r.id]: e.target.value ? Number(e.target.value) : null }))}
+                        onChange={e => setOverride(r.id, e.target.value ? Number(e.target.value) : null)}
+                        onBlur={() => commitOverride(r.id)}
                         placeholder="-"
                         className="w-12 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-400"
                       />
                       {isManual && (
                         <button
-                          onClick={() => setOverrides(prev => ({ ...prev, [r.id]: null }))}
+                          onClick={() => resetOverride(r.id)}
                           className="text-slate-400 hover:text-slate-600 text-xs underline"
                         >
                           초기화
                         </button>
                       )}
                     </div>
-                  </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    <button
-                      onClick={() => apply(r.id)}
-                      disabled={state === 'applying' || r.itemCount === 0}
-                      className="bg-indigo-600 text-white px-2.5 py-1 rounded text-xs hover:bg-indigo-500 disabled:opacity-40 whitespace-nowrap"
-                    >
-                      {state === 'applying' ? '적용 중...' : state === 'done' ? '완료 ✓' : '적용'}
-                    </button>
                   </td>
                 </tr>
               )
