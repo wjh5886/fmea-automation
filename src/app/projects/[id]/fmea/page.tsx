@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
+import ReportDashboard from './ReportDashboard'
 
 const FAILURE_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -206,6 +207,11 @@ export default function FmeaTablePage() {
   const [sms, setSms] = useState<SafetyMechanism[]>([])
   const [items, setItems] = useState<FmeaItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'table' | 'report'>('table')
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'report') setView('report')
+  }, [])
   const [filterUnit, setFilterUnit] = useState('')
   const [filterMode, setFilterMode] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -534,6 +540,24 @@ export default function FmeaTablePage() {
         <span className="text-slate-700">FMEA</span>
       </div>
 
+      {/* 탭 */}
+      <div className="flex border-b border-slate-200 mb-4">
+        {([['table', 'FMEA 테이블'], ['report', '분석 리포트']] as [typeof view, string][]).map(([key, label]) => (
+          <button key={key} onClick={() => setView(key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'report' ? (
+        loading ? (
+          <div className="text-center py-16 text-slate-400">불러오는 중...</div>
+        ) : (
+          <ReportDashboard items={items} sgs={sgs} />
+        )
+      ) : (
+      <>
       {/* 툴바 */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {/* 통계 */}
@@ -828,6 +852,8 @@ export default function FmeaTablePage() {
           </table>
         </div>
         </>
+      )}
+      </>
       )}
     </div>
   )
