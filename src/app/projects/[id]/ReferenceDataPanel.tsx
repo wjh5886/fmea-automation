@@ -53,7 +53,7 @@ export default function ReferenceDataPanel({
     <div>
       {/* 검색 */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="text-sm text-slate-500">인터페이스 ({interfaceRows.length})</span>
+        <span className="text-sm text-slate-500">Interface ({interfaceRows.length})</span>
         <div className="flex-1" />
         <input
           type="text"
@@ -64,13 +64,13 @@ export default function ReferenceDataPanel({
         />
       </div>
 
-      {/* 인터페이스 */}
+      {/* Interface */}
       <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 16rem)' }}>
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
             <tr>
               <Th>컴포넌트</Th>
-              <Th>인터페이스(변수)명</Th>
+              <Th>Interface(변수)명</Th>
               <Th>구분</Th>
               <Th>타입</Th>
             </tr>

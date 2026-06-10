@@ -175,7 +175,7 @@ export default function ProjectDetailPage() {
 
       {/* 탭 */}
       <div className="flex border-b border-slate-200 mb-6">
-        {([['overview', 'SW Unit'], ['reference', `Interface (${interfaceCount})`], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['occurrence', 'Occurrence(O) 평가']] as [Tab, string][]).map(([key, label]) => (
+        {([['overview', 'SW Unit'], ['reference', `Interface (${interfaceCount})`], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['occurrence', `Occurrence(O) 평가 (${units.length})`]] as [Tab, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}

@@ -101,15 +101,15 @@ export default function OccurrencePanel({
   return (
     <div>
       <p className="text-sm text-slate-500 mb-3">
-        컴포넌트별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 컴포넌트의 모든 FMEA 항목에 즉시 반영됩니다.
+        SW Unit별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다.
       </p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">컴포넌트</th>
+              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">SW Unit</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 수</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">신규 컴포넌트</th>
+              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">신규 SW Unit</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 변경</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">필드 이슈</th>
               <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">변경 유무</th>
@@ -119,7 +119,7 @@ export default function OccurrencePanel({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {componentRows.length === 0 ? (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">컴포넌트가 없습니다.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">SW Unit이 없습니다.</td></tr>
             ) : componentRows.map(r => {
               const sel = getSel(r.id)
               const o = oValue(r.id)
