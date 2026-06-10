@@ -19,6 +19,7 @@ export type ProjectCrossData = {
 }
 
 const FM_ORDER = ['MORE', 'LESS', 'CORRUPT', 'STUCK', 'EARLY', 'LATE', 'ERRATIC']
+const FOLDER_ORDER = ['SBW', 'WPC', 'PLBM']
 
 const ASIL_COLORS: Record<string, string> = {
   D: 'bg-red-100 text-red-700', C: 'bg-orange-100 text-orange-700',
@@ -46,14 +47,11 @@ const LEGEND = [
   { label: '위반 없음', cls: 'bg-slate-50 border border-slate-200' },
 ]
 
-// 차종(프로젝트) 간 공통 위험 패턴 비교 — 담당자 검토 후 제거될 수 있는 실험적 섹션
-export default function CrossModelComparison({ data }: { data: ProjectCrossData[] }) {
-  if (data.length < 2) return null
-
+function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossData[] }) {
   // ── Safety Goal 위반 비교 ──
   const sgIds = new Set<string>()
   const sgInfo = new Map<string, SgInfo>()
-  for (const { items, sgs } of data) {
+  for (const { items, sgs } of group) {
     for (const i of items) {
       if (isSgViolation(i.effect_safety_goal)) sgIds.add(i.effect_safety_goal!.trim())
     }
@@ -62,7 +60,7 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
     }
   }
   const sgRows = [...sgIds].sort().map(sgId => {
-    const cells = data.map(({ items }) => {
+    const cells = group.map(({ items }) => {
       const violations = items.filter(i => (i.effect_safety_goal ?? '').trim() === sgId)
       return {
         count: violations.length,
@@ -74,7 +72,7 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
 
   // ── 고장 유형(FM) 비교 ──
   const fmRows = FM_ORDER.map(fm => {
-    const cells = data.map(({ items }) => {
+    const cells = group.map(({ items }) => {
       const rows = items.filter(i => (i.failure_mode ?? '').trim().toUpperCase() === fm)
       const rpns = rows.map(r => r.rpn ?? 0)
       return { count: rows.length, avgRpn: rows.length ? Math.round(rpns.reduce((a, b) => a + b, 0) / rows.length) : 0 }
@@ -87,12 +85,11 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
   const topFm = fmRows.find(r => r.projectsAffected >= 2)
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mb-8">
-      <h2 className="font-semibold text-slate-800 mb-1">🔍 차종 간 비교</h2>
-      <p className="text-xs text-slate-400 mb-4">여러 프로젝트(차종)에 공통으로 나타나는 위험 패턴을 확인하세요.</p>
+    <div>
+      <h3 className="text-sm font-bold text-slate-700 mb-3">{label} <span className="font-normal text-slate-400">({group.length}개 차종)</span></h3>
 
       {(topSg || topFm) && (
-        <div className="flex flex-col gap-2 mb-5">
+        <div className="flex flex-col gap-2 mb-4">
           {topSg && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-800">
               🚨 <strong>{topSg.sgId}</strong>{topSg.info?.name ? ` (${topSg.info.name})` : ''} — {topSg.projectsAffected}개 차종에서 공통 위반 (최대 S{Math.max(...topSg.cells.map(c => c.maxS))}). 공통 진단 로직 검토를 권장합니다.
@@ -108,13 +105,12 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
 
       {sgRows.length > 0 && (
         <div className="overflow-x-auto">
-          <h3 className="text-sm font-bold text-slate-700 mb-3">Safety Goal 위반 히트맵</h3>
           <div
             className="inline-grid gap-1.5 min-w-full"
-            style={{ gridTemplateColumns: `140px repeat(${data.length}, minmax(76px, 1fr))` }}
+            style={{ gridTemplateColumns: `140px repeat(${group.length}, minmax(76px, 1fr))` }}
           >
             <div />
-            {data.map(({ project }) => (
+            {group.map(({ project }) => (
               <div key={project.id} className="text-xs font-medium text-slate-600 text-center truncate px-1 self-end pb-1" title={project.name}>
                 {project.name}
               </div>
@@ -162,7 +158,41 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
           </div>
         </div>
       )}
+    </div>
+  )
+}
 
+// 차종(프로젝트) 간 공통 위험 패턴 비교 — 같은 제품군(폴더) 내에서만 SG 정의가 동일하므로 폴더별로 그룹핑
+export default function CrossModelComparison({ data }: { data: ProjectCrossData[] }) {
+  const groups = new Map<string, ProjectCrossData[]>()
+  for (const d of data) {
+    const key = d.project.folder ?? '미분류'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(d)
+  }
+
+  const groupEntries = [...groups.entries()]
+    .filter(([, group]) => group.length >= 2)
+    .sort(([a], [b]) => {
+      const ia = FOLDER_ORDER.indexOf(a), ib = FOLDER_ORDER.indexOf(b)
+      if (ia === -1 && ib === -1) return a.localeCompare(b)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
+
+  if (groupEntries.length === 0) return null
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mb-8">
+      <h2 className="font-semibold text-slate-800 mb-1">🔍 차종 간 비교</h2>
+      <p className="text-xs text-slate-400 mb-4">같은 제품군(폴더) 내 차종 간 공통 위험 패턴을 확인하세요.</p>
+
+      {groupEntries.map(([folder, group], idx) => (
+        <div key={folder} className={idx > 0 ? 'mt-8 pt-6 border-t border-slate-100' : ''}>
+          <FolderHeatmap label={folder} group={group} />
+        </div>
+      ))}
     </div>
   )
 }
