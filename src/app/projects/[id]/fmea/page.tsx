@@ -6,8 +6,6 @@ import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { supabase, type FmeaItem, type SwUnit, type Project, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
 import ReportDashboard from './ReportDashboard'
-import ReferenceDataPanel from './ReferenceDataPanel'
-import OccurrencePanel from './OccurrencePanel'
 
 const FAILURE_MODES = ['MORE', 'LESS', 'CORRUPT', 'EARLY', 'LATE', 'STUCK', 'ERRATIC', 'N/A']
 
@@ -209,7 +207,7 @@ export default function FmeaTablePage() {
   const [sms, setSms] = useState<SafetyMechanism[]>([])
   const [items, setItems] = useState<FmeaItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'table' | 'reference' | 'occurrence' | 'report'>('table')
+  const [view, setView] = useState<'table' | 'report'>('table')
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('view') === 'report') setView('report')
@@ -544,7 +542,7 @@ export default function FmeaTablePage() {
 
       {/* 탭 */}
       <div className="flex border-b border-slate-200 mb-4">
-        {([['table', 'FMEA 테이블'], ['reference', '참조 데이터'], ['occurrence', 'O값 평가'], ['report', '분석 리포트']] as [typeof view, string][]).map(([key, label]) => (
+        {([['table', 'FMEA 테이블'], ['report', '분석 리포트']] as [typeof view, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setView(key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}
@@ -552,14 +550,12 @@ export default function FmeaTablePage() {
         ))}
       </div>
 
-      {loading && (view === 'report' || view === 'reference' || view === 'occurrence') ? (
-        <div className="text-center py-16 text-slate-400">불러오는 중...</div>
-      ) : view === 'report' ? (
-        <ReportDashboard items={items} sgs={sgs} />
-      ) : view === 'reference' ? (
-        <ReferenceDataPanel units={units} items={items} sgs={sgs} sms={sms} />
-      ) : view === 'occurrence' ? (
-        <OccurrencePanel units={units} items={items} projectId={id} onApplied={load} />
+      {view === 'report' ? (
+        loading ? (
+          <div className="text-center py-16 text-slate-400">불러오는 중...</div>
+        ) : (
+          <ReportDashboard items={items} sgs={sgs} />
+        )
       ) : (
       <>
       {/* 툴바 */}

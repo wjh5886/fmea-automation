@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, type Project, type SwUnit, type SafetyGoal, type SafetyMechanism } from '@/lib/supabase'
+import { supabase, type Project, type SwUnit, type SafetyGoal, type SafetyMechanism, type FmeaItem } from '@/lib/supabase'
+import ReferenceDataPanel from './ReferenceDataPanel'
+import OccurrencePanel from './OccurrencePanel'
 
 type StatItem = { id: string; severity: number | null; occurrence: number | null; detection: number | null; rpn: number | null }
-type Tab = 'overview' | 'sg' | 'sm'
+type Tab = 'overview' | 'sg' | 'sm' | 'reference' | 'occurrence'
 
 const ASIL_COLORS: Record<string, string> = {
   D: 'bg-red-100 text-red-700', C: 'bg-orange-100 text-orange-700',
@@ -20,6 +22,7 @@ export default function ProjectDetailPage() {
   const [units, setUnits] = useState<SwUnit[]>([])
   const [sgs, setSgs] = useState<SafetyGoal[]>([])
   const [sms, setSms] = useState<SafetyMechanism[]>([])
+  const [items, setItems] = useState<FmeaItem[]>([])
   const [stats, setStats] = useState({ total: 0, filled: 0, high_rpn: 0 })
   const [tab, setTab] = useState<Tab>('overview')
 
@@ -36,13 +39,17 @@ export default function ProjectDetailPage() {
   const [addingUnit, setAddingUnit] = useState(false)
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/projects/${id}`)
+    const [res, itemsRes] = await Promise.all([
+      fetch(`/api/projects/${id}`),
+      fetch(`/api/projects/${id}/items`),
+    ])
     const { project: proj, units: unitData, sgs: sgData, sms: smData, stats: statsData } = await res.json()
     setProject(proj)
     setUnits(unitData ?? [])
     setSgs(sgData ?? [])
     setSms(smData ?? [])
     setStats(statsData ?? { total: 0, filled: 0, high_rpn: 0 })
+    setItems(itemsRes.ok ? await itemsRes.json() : [])
   }, [id])
 
   useEffect(() => { load() }, [load])
@@ -162,13 +169,23 @@ export default function ProjectDetailPage() {
 
       {/* 탭 */}
       <div className="flex border-b border-slate-200 mb-6">
-        {([['overview', 'SW Unit'], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`]] as [Tab, string][]).map(([key, label]) => (
+        {([['overview', 'SW Unit'], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['reference', '참조 데이터'], ['occurrence', 'O값 평가']] as [Tab, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}
           </button>
         ))}
       </div>
+
+      {/* 참조 데이터 탭 */}
+      {tab === 'reference' && (
+        <ReferenceDataPanel units={units} items={items} sgs={sgs} sms={sms} />
+      )}
+
+      {/* O값 평가 탭 */}
+      {tab === 'occurrence' && (
+        <OccurrencePanel units={units} items={items} projectId={id} onApplied={load} />
+      )}
 
       {/* Overview 탭 - SW Unit */}
       {tab === 'overview' && (
