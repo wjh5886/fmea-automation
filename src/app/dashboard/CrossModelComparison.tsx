@@ -26,17 +26,15 @@ const ASIL_COLORS: Record<string, string> = {
   B: 'bg-yellow-100 text-yellow-700', A: 'bg-blue-100 text-blue-700', QM: 'bg-slate-100 text-slate-600',
 }
 
-// "SG1" → "SG01", "SG1 / SG2 / SG3" → ["SG01","SG02","SG03"] 처럼 표기 차이/복수값을 정규화
+// "SG1" → "SG01", "SG1 / SG2 / SG3" → ["SG01","SG02","SG03"] 처럼 표기 차이/복수값을 정규화.
+// "SGxx" 패턴이 아닌 값(작성 안내 문구 등 잘못 입력된 데이터)은 제외.
 function splitSgIds(raw: string | null | undefined): string[] {
   if (!raw) return []
   return raw
     .split(/[/,]/)
-    .map(s => s.trim())
-    .filter(s => s && !['X', '-'].includes(s.toUpperCase()))
-    .map(s => {
-      const m = s.toUpperCase().match(/^SG0*(\d+)$/)
-      return m ? `SG${m[1].padStart(2, '0')}` : s.toUpperCase()
-    })
+    .map(s => s.trim().toUpperCase().match(/^SG0*(\d+)$/))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map(m => `SG${m[1].padStart(2, '0')}`)
 }
 
 function heatColor(count: number, maxS: number) {
