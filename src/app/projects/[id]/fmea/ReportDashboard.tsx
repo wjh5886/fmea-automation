@@ -45,10 +45,10 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
 
   const pct = (n: number) => (d.total ? ` (${Math.round((n / d.total) * 1000) / 10}%)` : '')
   const cards = [
-    { label: '전체 항목', value: String(d.total), icon: '📋', iconBg: 'bg-blue-50', valueColor: 'text-blue-600' },
-    { label: 'SG 위반', value: `${d.sgViolations}${pct(d.sgViolations)}`, icon: '🚨', iconBg: 'bg-red-50', valueColor: 'text-red-600' },
-    { label: '고위험 (S≥8)', value: `${d.highS}${pct(d.highS)}`, icon: '⚠️', iconBg: 'bg-amber-50', valueColor: 'text-amber-600' },
-    { label: '최대 RPN', value: String(d.maxRpn), icon: '🔥', iconBg: 'bg-cyan-50', valueColor: 'text-cyan-600' },
+    { label: '전체 항목', value: String(d.total), color: 'border-blue-500 text-blue-600 bg-blue-50' },
+    { label: 'SG 위반', value: `${d.sgViolations}${pct(d.sgViolations)}`, color: 'border-red-500 text-red-600 bg-red-50' },
+    { label: '고위험 (S≥8)', value: `${d.highS}${pct(d.highS)}`, color: 'border-amber-500 text-amber-600 bg-amber-50' },
+    { label: '최대 RPN', value: String(d.maxRpn), color: 'border-cyan-500 text-cyan-600 bg-cyan-50' },
   ]
 
   const maxCnt = Math.max(...Object.values(d.sDistribution), 1)
@@ -58,12 +58,9 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
       {/* 요약 카드 */}
       <div className="grid grid-cols-4 gap-3">
         {cards.map(c => (
-          <div key={c.label} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${c.iconBg}`}>{c.icon}</div>
-            <div className="min-w-0">
-              <div className="text-xs text-slate-500 mb-0.5 truncate">{c.label}</div>
-              <div className={`text-2xl font-extrabold ${c.valueColor}`}>{c.value}</div>
-            </div>
+          <div key={c.label} className={`rounded-xl p-4 border-l-4 ${c.color}`}>
+            <div className="text-xs text-slate-500 mb-1">{c.label}</div>
+            <div className="text-2xl font-extrabold">{c.value}</div>
           </div>
         ))}
       </div>
@@ -166,7 +163,7 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
         {d.sgBreakdown.length ? (
           <div className="flex flex-wrap gap-2">
             {d.sgBreakdown.map(sg => (
-              <div key={sg.sgId} className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 min-w-[150px]">
+              <div key={sg.sgId} className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 min-w-[150px]">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-extrabold text-red-600">{sg.sgId}</span>
                   {sg.asil && <span className={`px-1.5 py-0.5 rounded text-[.65rem] font-bold ${ASIL_COLORS[sg.asil] ?? ASIL_COLORS.QM}`}>{sg.asil}</span>}
