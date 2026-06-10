@@ -69,7 +69,7 @@ export default function ReferenceDataPanel({
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
             <tr>
-              <Th>컴포넌트</Th>
+              <Th>SW Unit</Th>
               <Th>Interface(변수)명</Th>
               <Th>구분</Th>
               <Th>타입</Th>

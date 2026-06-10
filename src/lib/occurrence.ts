@@ -20,8 +20,8 @@ export const NEW_COMP_OPTIONS = [
 
 export const INTF_CHANGE_OPTIONS = [
   { value: 0, label: '없음' },
-  { value: 1, label: '소폭 변경' },
-  { value: 2, label: '대폭 변경' },
+  { value: 1, label: '낮음' },
+  { value: 2, label: '높음' },
 ]
 
 export const FIELD_ISSUE_OPTIONS = [
