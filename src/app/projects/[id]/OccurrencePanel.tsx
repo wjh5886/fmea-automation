@@ -127,7 +127,7 @@ export default function OccurrencePanel({
           </button>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mb-3">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다</p>
+      <p className="text-xs text-slate-400 mb-3">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200">
