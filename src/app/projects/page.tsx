@@ -178,10 +178,10 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">FMEA 프로젝트</h1>
         <div className="flex gap-2">
-          <Link href="/projects/compare" className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-amber-300 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+          <Link href="/projects/compare" className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors">
             프로젝트 비교
           </Link>
-          <Link href="/projects/import" className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+          <Link href="/projects/import" className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
             ARXML 가져오기
           </Link>
           <Link href="/projects/new" className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm shadow-slate-300 hover:from-slate-800 hover:to-slate-600 transition-all">
