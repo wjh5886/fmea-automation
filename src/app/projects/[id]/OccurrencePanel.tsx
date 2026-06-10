@@ -109,10 +109,8 @@ export default function OccurrencePanel({
   return (
     <div>
       {showExample && <OccurrenceExampleModal onClose={() => setShowExample(false)} />}
-      <div className="flex items-center justify-between mb-3 gap-3">
-        <p className="text-sm text-slate-500">
-          SW Unit별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다.
-        </p>
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <span className="text-sm text-slate-500">O값 평가 ({componentRows.length})</span>
         <div className="flex items-center gap-2 shrink-0">
           <input
             type="text"
@@ -129,6 +127,7 @@ export default function OccurrencePanel({
           </button>
         </div>
       </div>
+      <p className="text-xs text-slate-400 mb-3">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다</p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200">
