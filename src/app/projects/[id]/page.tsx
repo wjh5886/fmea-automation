@@ -38,6 +38,11 @@ export default function ProjectDetailPage() {
   const [newUnit, setNewUnit] = useState('')
   const [addingUnit, setAddingUnit] = useState(false)
 
+  // 검색
+  const [unitSearch, setUnitSearch] = useState('')
+  const [sgSearch, setSgSearch] = useState('')
+  const [smSearch, setSmSearch] = useState('')
+
   const load = useCallback(async () => {
     const [res, itemsRes] = await Promise.all([
       fetch(`/api/projects/${id}`),
@@ -59,6 +64,21 @@ export default function ProjectDetailPage() {
     for (const i of items) seen.add(`${i.sw_unit_id ?? ''}::${i.variable_name ?? ''}`)
     return seen.size
   }, [items])
+
+  const filteredUnits = useMemo(() => {
+    const q = unitSearch.trim().toLowerCase()
+    return q ? units.filter(u => u.name.toLowerCase().includes(q)) : units
+  }, [units, unitSearch])
+
+  const filteredSgs = useMemo(() => {
+    const q = sgSearch.trim().toLowerCase()
+    return q ? sgs.filter(sg => sg.sg_id.toLowerCase().includes(q) || sg.name.toLowerCase().includes(q) || (sg.description ?? '').toLowerCase().includes(q)) : sgs
+  }, [sgs, sgSearch])
+
+  const filteredSms = useMemo(() => {
+    const q = smSearch.trim().toLowerCase()
+    return q ? sms.filter(sm => sm.sm_id.toLowerCase().includes(q) || sm.name.toLowerCase().includes(q) || (sm.description ?? '').toLowerCase().includes(q)) : sms
+  }, [sms, smSearch])
 
   const addUnit = async () => {
     if (!newUnit.trim()) return
@@ -196,18 +216,27 @@ export default function ProjectDetailPage() {
       {/* Overview 탭 - SW Unit */}
       {tab === 'overview' && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="font-semibold text-slate-800 mb-4">SW Unit 목록</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-slate-800">SW Unit 목록</h2>
+            <input
+              type="text"
+              value={unitSearch}
+              onChange={e => setUnitSearch(e.target.value)}
+              placeholder="검색..."
+              className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          </div>
           <div className="flex gap-2 mb-4">
             <input value={newUnit} onChange={e => setNewUnit(e.target.value)} onKeyDown={e => e.key === 'Enter' && addUnit()}
               placeholder="SW Unit 이름 (예: CstAp_PwrMGT)"
               className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
             <button onClick={addUnit} disabled={addingUnit} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 disabled:opacity-50">추가</button>
           </div>
-          {units.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center py-4">SW Unit을 추가하세요.</p>
+          {filteredUnits.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-4">{units.length === 0 ? 'SW Unit을 추가하세요.' : '검색 결과가 없습니다.'}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {units.map(u => <span key={u.id} className="bg-slate-100 text-slate-700 text-sm px-3 py-1 rounded-full font-mono">{u.name}</span>)}
+              {filteredUnits.map(u => <span key={u.id} className="bg-slate-100 text-slate-700 text-sm px-3 py-1 rounded-full font-mono">{u.name}</span>)}
             </div>
           )}
         </div>
@@ -251,8 +280,18 @@ export default function ProjectDetailPage() {
 
           {/* SG 목록 */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {sgs.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-8">Safety Goal을 추가하세요.</p>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+              <h2 className="font-semibold text-slate-800 text-sm">Safety Goal 목록</h2>
+              <input
+                type="text"
+                value={sgSearch}
+                onChange={e => setSgSearch(e.target.value)}
+                placeholder="검색..."
+                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              />
+            </div>
+            {filteredSgs.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-8">{sgs.length === 0 ? 'Safety Goal을 추가하세요.' : '검색 결과가 없습니다.'}</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
@@ -265,7 +304,7 @@ export default function ProjectDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {sgs.map(sg => (
+                  {filteredSgs.map(sg => (
                     <tr key={sg.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-mono font-semibold text-slate-700">{sg.sg_id}</td>
                       <td className="px-4 py-3">
@@ -341,8 +380,18 @@ export default function ProjectDetailPage() {
 
           {/* SM 목록 */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {sms.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-8">Safety Mechanism을 추가하세요.</p>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+              <h2 className="font-semibold text-slate-800 text-sm">Safety Mechanism 목록</h2>
+              <input
+                type="text"
+                value={smSearch}
+                onChange={e => setSmSearch(e.target.value)}
+                placeholder="검색..."
+                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              />
+            </div>
+            {filteredSms.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-8">{sms.length === 0 ? 'Safety Mechanism을 추가하세요.' : '검색 결과가 없습니다.'}</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
@@ -357,7 +406,7 @@ export default function ProjectDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {sms.map(sm => {
+                  {filteredSms.map(sm => {
                     const relatedSg = sgs.find(sg => sg.id === sm.related_sg_id)
                     const coverageColor = sm.diagnostic_coverage === 'High' ? 'bg-green-100 text-green-700' : sm.diagnostic_coverage === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'
                     const typeColor = sm.type === 'Preventive' ? 'bg-blue-50 text-blue-700' : sm.type === 'Detection' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'

@@ -31,6 +31,7 @@ export default function OccurrencePanel({
   const [overrides, setOverrides] = useState<Record<string, number | null>>({})
   const [applyState, setApplyState] = useState<Record<string, ApplyState>>({})
   const [showExample, setShowExample] = useState(false)
+  const [search, setSearch] = useState('')
 
   const componentRows = useMemo(() => {
     return units
@@ -41,6 +42,11 @@ export default function OccurrencePanel({
       })
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [units, items])
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return q ? componentRows.filter(r => r.name.toLowerCase().includes(q)) : componentRows
+  }, [componentRows, search])
 
   const getSel = (id: string): OSelections => selections[id] ?? DEFAULT_O_SELECTIONS
 
@@ -103,16 +109,25 @@ export default function OccurrencePanel({
   return (
     <div>
       {showExample && <OccurrenceExampleModal onClose={() => setShowExample(false)} />}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-3">
         <p className="text-sm text-slate-500">
           SW Unit별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다.
         </p>
-        <button
-          onClick={() => setShowExample(true)}
-          className="shrink-0 ml-3 text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 whitespace-nowrap"
-        >
-          📋 작성 예시
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="검색..."
+            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          />
+          <button
+            onClick={() => setShowExample(true)}
+            className="text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 whitespace-nowrap"
+          >
+            📋 작성 예시
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
@@ -129,9 +144,9 @@ export default function OccurrencePanel({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {componentRows.length === 0 ? (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">SW Unit이 없습니다.</td></tr>
-            ) : componentRows.map(r => {
+            {filteredRows.length === 0 ? (
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">{componentRows.length === 0 ? 'SW Unit이 없습니다.' : '검색 결과가 없습니다.'}</td></tr>
+            ) : filteredRows.map(r => {
               const sel = getSel(r.id)
               const o = oValue(r.id)
               const isManual = overrides[r.id] != null
