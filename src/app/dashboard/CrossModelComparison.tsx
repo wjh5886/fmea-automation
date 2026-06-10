@@ -145,6 +145,8 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
 
       {sgRows.length > 0 && (
         <div className="overflow-x-auto">
+          <p className="text-xs text-slate-400 mb-2">차종명을 클릭하면 해당 프로젝트의 분석 리포트로 이동합니다.</p>
+
           {/* SG 선택 토글 */}
           <div className="flex flex-wrap items-center gap-1.5 mb-3">
             <span className="text-xs text-slate-400 mr-0.5">SG 선택</span>
@@ -183,8 +185,8 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
               <Link
                 key={project.id}
                 href={`/projects/${project.id}/fmea?view=report`}
-                className="text-[.65rem] font-medium text-slate-600 text-center truncate px-0.5 self-end pb-1 hover:text-blue-600 hover:underline"
-                title={project.name}
+                className="text-[.65rem] font-medium text-slate-600 text-center truncate px-1.5 py-0.5 mb-1 rounded-full border border-slate-200 bg-slate-50 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors self-end"
+                title={`${project.name} 분석 리포트 보기`}
               >
                 {project.name}
               </Link>
