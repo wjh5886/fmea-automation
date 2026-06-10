@@ -624,7 +624,7 @@ export default function FmeaTablePage() {
             {analyzeError}
           </span>
         )}
-        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1.5 rounded text-sm font-medium shadow-sm shadow-blue-200 hover:from-blue-700 hover:to-blue-600 hover:shadow-blue-300 disabled:opacity-50 disabled:shadow-none transition-all flex items-center gap-2">
           {analyzingAll && analyzeProgress ? (
             <>
               <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -650,7 +650,7 @@ export default function FmeaTablePage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <p className="mb-3">항목이 없습니다.</p>
-          <button onClick={() => setShowImport(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+          <button onClick={() => setShowImport(true)} className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm shadow-blue-200 hover:from-blue-700 hover:to-blue-600 hover:shadow-blue-300 transition-all">
             JSON으로 데이터 가져오기
           </button>
         </div>
