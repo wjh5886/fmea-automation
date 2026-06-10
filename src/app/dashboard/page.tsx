@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase, type Project } from '@/lib/supabase'
+import CrossModelComparison, { type ProjectCrossData } from './CrossModelComparison'
+import IntegratedReportSection from './IntegratedReportSection'
 
 type ProjectStat = {
   project: Project
@@ -48,23 +50,33 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<ProjectStat[]>([])
   const [fmAll, setFmAll] = useState<FmStat[]>([])
   const [fmByProject, setFmByProject] = useState<Record<string, FmStat[]>>({})
+  const [crossData, setCrossData] = useState<ProjectCrossData[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('__all__')
   const [loading, setLoading] = useState(true)
+  const [allProjects, setAllProjects] = useState<Project[]>([])
 
   useEffect(() => {
     async function load() {
       const { data: projects } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
       if (!projects?.length) { setLoading(false); return }
+      setAllProjects(projects)
 
       const results: ProjectStat[] = []
       const allFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
       const byProject: Record<string, FmStat[]> = {}
+      const cross: ProjectCrossData[] = []
 
       for (const project of projects) {
-        const { data: items } = await supabase
-          .from('fmea_items')
-          .select('severity,occurrence,detection,rpn,failure_mode')
-          .eq('project_id', project.id)
+        const [{ data: items }, { data: sgs }] = await Promise.all([
+          supabase
+            .from('fmea_items')
+            .select('severity,occurrence,detection,rpn,failure_mode,effect_safety_goal')
+            .eq('project_id', project.id),
+          supabase
+            .from('safety_goals')
+            .select('sg_id,name,asil')
+            .eq('project_id', project.id),
+        ])
 
         if (!items) continue
         const filled = items.filter(i => i.severity && i.occurrence && i.detection)
@@ -77,6 +89,7 @@ export default function DashboardPage() {
           avgRpn: rpns.length ? Math.round(rpns.reduce((a, b) => a + b, 0) / rpns.length) : 0,
           maxRpn: rpns.length ? Math.max(...rpns) : 0,
         })
+        cross.push({ project, items, sgs: sgs ?? [] })
 
         const projFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
         for (const item of items) {
@@ -93,6 +106,7 @@ export default function DashboardPage() {
       setStats(results)
       setFmAll(buildFmStats(allFmMap))
       setFmByProject(byProject)
+      setCrossData(cross)
       setLoading(false)
     }
     load()
@@ -107,15 +121,10 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-slate-400 hover:text-slate-600 text-sm">홈</Link>
-          <span className="text-slate-300">/</span>
-          <h1 className="text-2xl font-bold text-slate-900">RPN 대시보드</h1>
-        </div>
-        <Link href="/dashboard/report" className="bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-violet-700 transition-colors">
-          📊 통합 리포트 →
-        </Link>
+      <div className="flex items-center gap-3 mb-6">
+        <Link href="/" className="text-slate-400 hover:text-slate-600 text-sm">홈</Link>
+        <span className="text-slate-300">/</span>
+        <h1 className="text-2xl font-bold text-slate-900">RPN 대시보드</h1>
       </div>
 
       {loading ? (
@@ -209,8 +218,11 @@ export default function DashboardPage() {
             </table>
           </div>
 
+          {/* 차종 간 비교 */}
+          <CrossModelComparison data={crossData} />
+
           {/* Failure Mode 분포 */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-slate-800">Failure Mode 분포</h2>
               <select
@@ -262,6 +274,9 @@ export default function DashboardPage() {
               <div className="ml-auto text-xs text-slate-400">⚠ = 고위험(≥100) 수</div>
             </div>
           </div>
+
+          {/* 통합 상세 분석 */}
+          <IntegratedReportSection projects={allProjects} />
         </>
       )}
     </div>
