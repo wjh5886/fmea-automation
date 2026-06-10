@@ -6,7 +6,13 @@ type Params = { params: Promise<{ id: string }> }
 export async function GET(req: NextRequest, { params }: Params) {
   const { id } = await params
   const rows = await query(
-    `SELECT fi.*,
+    `SELECT fi.id, fi.project_id, fi.sw_unit_id, fi.item_no, fi.category, fi.variable_name, fi.variable_type,
+       fi.failure_mode, fi.failure_detail, fi.effect_module, fi.effect_system, fi.effect_safety_goal,
+       fi.severity, fi.occurrence, fi.detection, fi.rpn, fi.preventive_action, fi.detection_action,
+       fi.cm_required, fi.countermeasure, fi.signal_range, fi.potential_cause, fi.test_method,
+       fi.safety_mechanism_text, fi.severity_after, fi.occurrence_after, fi.detection_after, fi.rpn_after,
+       fi.target_date, fi.responsibility, fi.reference_result, fi.finish_date,
+       fi.safety_goal_id, fi.safety_mechanism_id, fi.status, fi.ai_generated, fi.created_at, fi.updated_at,
        json_build_object('id', su.id, 'name', su.name) AS sw_units,
        json_build_object('id', sg.id, 'sg_id', sg.sg_id, 'name', sg.name, 'asil', sg.asil) AS safety_goals,
        json_build_object('id', sm.id, 'sm_id', sm.sm_id, 'name', sm.name) AS safety_mechanisms
