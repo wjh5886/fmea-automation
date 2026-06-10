@@ -172,7 +172,7 @@ export default function OccurrencePanel({
                       </td>
                       <td className="px-4 py-3 align-top text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg text-lg font-bold ${oColorClass(o)}`}>{o}</span>
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-base font-bold ${oColorClass(o)}`}>{o}</span>
                           <span className="text-[10px] text-slate-400 whitespace-nowrap">
                             {state === 'saving' ? '저장 중...' : state === 'saved' ? '✓ 반영됨' : ''}
                           </span>
