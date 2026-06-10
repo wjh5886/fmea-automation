@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS pre_fmea_items (
   preventive_action  TEXT,
   detection_action   TEXT,
   confidence_score   FLOAT CHECK (confidence_score BETWEEN 0 AND 1),
-  source             TEXT NOT NULL DEFAULT 'ai' CHECK (source IN ('ai','human','merged')),
+  source             TEXT NOT NULL DEFAULT 'ai' CHECK (source IN ('ai','icd','human','merged')),
   review_status      TEXT NOT NULL DEFAULT 'pending' CHECK (review_status IN ('pending','accepted','rejected','modified')),
   human_override     JSONB,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),

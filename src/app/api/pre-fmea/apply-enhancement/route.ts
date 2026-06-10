@@ -13,10 +13,11 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(merged_ids) || !merged_ids.length)
       return NextResponse.json({ error: 'merged_ids required' }, { status: 400 })
 
-    // 선택된 merged 항목 조회
+    // 선택된 merged 항목 조회 (ANY 대신 IN 절로 UUID 파라미터 바인딩)
+    const idParams = merged_ids.map((_, i) => `$${i + 2}`).join(',')
     const mergedItems = await query(
-      `SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source = 'merged' AND id = ANY($2)`,
-      [session_id, merged_ids],
+      `SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source = 'merged' AND id IN (${idParams})`,
+      [session_id, ...merged_ids],
     )
 
     // icd 항목 전체 조회 — (sw_component, failure_mode) 매칭용
