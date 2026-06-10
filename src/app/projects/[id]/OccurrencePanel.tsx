@@ -100,7 +100,7 @@ export default function OccurrencePanel({
     <select
       value={value}
       onChange={e => onChange(Number(e.target.value))}
-      className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 w-full"
+      className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 w-full"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -119,11 +119,11 @@ export default function OccurrencePanel({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="검색..."
-            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
           />
           <button
             onClick={() => setShowExample(true)}
-            className="text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 whitespace-nowrap"
+            className="text-xs text-blue-600 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50 whitespace-nowrap"
           >
             📋 작성 예시
           </button>
@@ -183,7 +183,7 @@ export default function OccurrencePanel({
                         onChange={e => setOverride(r.id, e.target.value ? Number(e.target.value) : null)}
                         onBlur={() => commitOverride(r.id)}
                         placeholder="-"
-                        className="w-12 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        className="w-12 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
                       />
                       {isManual && (
                         <button

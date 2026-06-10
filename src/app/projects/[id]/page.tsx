@@ -169,10 +169,10 @@ export default function ProjectDetailPage() {
             className="border border-red-200 text-red-500 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition-colors">
             🗑️ 삭제
           </button>
-          <Link href={`/projects/${id}/fmea?view=report`} className="bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-violet-700 transition-colors">
+          <Link href={`/projects/${id}/fmea?view=report`} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors">
             📊 분석 리포트 →
           </Link>
-          <Link href={`/projects/${id}/fmea`} className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-700 transition-colors">
+          <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-700 transition-colors">
             📋 FMEA 테이블 →
           </Link>
         </div>
@@ -197,7 +197,7 @@ export default function ProjectDetailPage() {
       <div className="flex border-b border-slate-200 mb-6">
         {([['overview', 'SW Unit'], ['reference', `Interface (${interfaceCount})`], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['occurrence', `Occurrence(O) 평가 (${units.length})`]] as [Tab, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}
           </button>
         ))}
@@ -223,7 +223,7 @@ export default function ProjectDetailPage() {
               value={unitSearch}
               onChange={e => setUnitSearch(e.target.value)}
               placeholder="검색..."
-              className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
           <div className="flex gap-2 mb-4">
@@ -287,7 +287,7 @@ export default function ProjectDetailPage() {
                 value={sgSearch}
                 onChange={e => setSgSearch(e.target.value)}
                 placeholder="검색..."
-                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             {filteredSgs.length === 0 ? (
@@ -387,7 +387,7 @@ export default function ProjectDetailPage() {
                 value={smSearch}
                 onChange={e => setSmSearch(e.target.value)}
                 placeholder="검색..."
-                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             {filteredSms.length === 0 ? (

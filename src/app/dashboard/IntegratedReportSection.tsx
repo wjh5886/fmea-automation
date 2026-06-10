@@ -77,7 +77,7 @@ export default function IntegratedReportSection({ projects }: { projects: Projec
                 <select
                   value={selected}
                   onChange={e => setSelected(e.target.value)}
-                  className="border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                 >
                   <option value="__all__">전체 프로젝트 (통합)</option>
                   {(data ?? []).map(({ project }) => (

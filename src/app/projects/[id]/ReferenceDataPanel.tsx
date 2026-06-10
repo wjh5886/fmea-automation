@@ -60,7 +60,7 @@ export default function ReferenceDataPanel({
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="검색..."
-          className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
       </div>
 
