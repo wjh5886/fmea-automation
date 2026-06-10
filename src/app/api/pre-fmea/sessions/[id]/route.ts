@@ -39,11 +39,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return NextResponse.json({ session: sessions[0] ?? null, docs, items, gapSummary })
 }
 
+const PATCHABLE_SESSION_FIELDS = new Set(['name', 'status', 'doc_version', 'item_name', 'reference_project_id', 'notes'])
+
 export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params
   const body = await req.json()
-  const fields = Object.keys(body)
-  if (!fields.length) return NextResponse.json({ error: 'no fields' }, { status: 400 })
+  const fields = Object.keys(body).filter(f => PATCHABLE_SESSION_FIELDS.has(f))
+  if (!fields.length) return NextResponse.json({ error: 'no valid fields' }, { status: 400 })
   const setClauses = fields.map((f, i) => `"${f}" = $${i + 2}`).join(', ')
   const values = fields.map(f => (body as Record<string, unknown>)[f])
   await execute(

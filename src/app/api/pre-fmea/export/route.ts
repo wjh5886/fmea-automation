@@ -89,13 +89,13 @@ export async function GET(req: NextRequest) {
     ])
 
     let sourceFilter: string
-    if (sourceParam === 'ai') {
-      sourceFilter = "source = 'ai'"
+    if (sourceParam === 'merged') {
+      sourceFilter = "source = 'merged'"
     } else if (sourceParam === 'all') {
-      sourceFilter = "source IN ('ai','merged','human')"
+      sourceFilter = "source IN ('ai','icd','merged','human')"
     } else {
-      const hasMerged = Number(mergedCheck[0]?.cnt) > 0
-      sourceFilter = hasMerged ? "source = 'merged'" : "source = 'ai'"
+      // 기본값: icd/ai 항목이 최종본 (option B)
+      sourceFilter = "source IN ('ai','icd')"
     }
     const items = await query(
       `SELECT * FROM pre_fmea_items WHERE session_id = $1 AND ${sourceFilter} ORDER BY item_no NULLS LAST, id`,
@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
         item.failure_detail  ?? null,
         item.effect_local    ?? null,
         item.effect_system   ?? null,
-        null,
+        item.effect_sg       ?? null,
         item.severity        ?? null,
         item.preventive_action ?? null,
         item.occurrence      ?? null,

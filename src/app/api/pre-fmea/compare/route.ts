@@ -3,11 +3,18 @@ import { query } from '@/lib/db'
 import { storageDownload } from '@/lib/supabase-server'
 import * as XLSX from 'xlsx'
 
-const HAZOP = new Set(['MORE','LESS','CORRUPT','EARLY','LATE','STUCK','ERRATIC'])
+const HAZOP = new Set(['MORE','LESS','REVERSE','CORRUPT','NO','AS_WELL_AS','PART_OF','EARLY','LATE'])
 
 function extractHazop(raw: unknown): string | null {
-  const m = String(raw ?? '').trim().match(/^(MORE|LESS|CORRUPT|EARLY|LATE|STUCK|ERRATIC)/i)
-  return m ? m[1].toUpperCase() : null
+  const s = String(raw ?? '').trim().toUpperCase()
+  // 정확히 일치
+  if (HAZOP.has(s)) return s
+  // 언더스코어·스페이스 변형 허용: "AS WELL AS" → "AS_WELL_AS", "PART OF" → "PART_OF"
+  const normalized = s.replace(/\s+/g, '_')
+  if (HAZOP.has(normalized)) return normalized
+  // 접두어 매칭: 셀이 "CORRUPT - 값 비정상" 형태일 때
+  const m = s.match(/^(MORE|LESS|REVERSE|CORRUPT|NO|AS_WELL_AS|PART_OF|EARLY|LATE)/)
+  return m ? m[1] : null
 }
 
 function normalize(s: unknown): string {
@@ -174,9 +181,9 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // 5. AI 항목 조회
+    // 5. AI 항목 조회 (icd 포함)
     const aiItems = await query(
-      "SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source = 'ai' ORDER BY item_no",
+      "SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source IN ('ai','icd') ORDER BY item_no",
       [session_id],
     )
 

@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS pre_fmea_sessions (
 CREATE TABLE IF NOT EXISTS pre_fmea_documents (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id   UUID NOT NULL REFERENCES pre_fmea_sessions(id) ON DELETE CASCADE,
-  doc_type     TEXT NOT NULL CHECK (doc_type IN ('fmea_template','design_spec','human_fmea','architecture','dbc_file')),
+  doc_type     TEXT NOT NULL CHECK (doc_type IN ('fmea_template','design_spec','human_fmea','architecture','dbc_file','system_fmea','icd_file')),
   filename     TEXT NOT NULL,
   storage_path TEXT,
   parsed_text  TEXT,
@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS pre_fmea_items (
   failure_detail     TEXT,
   effect_local       TEXT,
   effect_system      TEXT,
+  effect_sg          TEXT,
   potential_cause    TEXT,
   severity           INT CHECK (severity BETWEEN 1 AND 10),
   occurrence         INT CHECK (occurrence BETWEEN 1 AND 10),

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (!session_id) return NextResponse.json({ error: 'session_id required' }, { status: 400 })
 
     const [aiItems, humanItems] = await Promise.all([
-      query("SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source = 'ai' ORDER BY item_no", [session_id]),
+      query("SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source IN ('ai','icd') ORDER BY item_no", [session_id]),
       query("SELECT * FROM pre_fmea_items WHERE session_id = $1 AND source = 'human' ORDER BY item_no", [session_id]),
     ])
 
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       failure_detail: unknown
       effect_local: unknown
       effect_system: unknown
+      effect_sg: unknown
       potential_cause: unknown
       severity: unknown
       occurrence: unknown
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
           failure_detail:    ai.failure_detail ?? human.failure_detail,
           effect_local:      human.effect_local ?? ai.effect_local,
           effect_system:     human.effect_system ?? ai.effect_system,
+          effect_sg:         ai.effect_sg ?? null,
           potential_cause:   ai.potential_cause,
           severity:          mS,
           occurrence:        mO,
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
           failure_detail:    ai.failure_detail,
           effect_local:      ai.effect_local,
           effect_system:     ai.effect_system,
+          effect_sg:         ai.effect_sg ?? null,
           potential_cause:   ai.potential_cause,
           severity:          ai.severity,
           occurrence:        ai.occurrence,
@@ -129,6 +132,7 @@ export async function POST(req: NextRequest) {
           failure_detail:    h.failure_detail,
           effect_local:      h.effect_local,
           effect_system:     h.effect_system,
+          effect_sg:         null,
           potential_cause:   null,
           severity:          h.severity,
           occurrence:        h.occurrence,
@@ -157,11 +161,11 @@ export async function POST(req: NextRequest) {
       await query(
         `INSERT INTO pre_fmea_items
          (session_id, item_no, sw_component, function_name, failure_mode, failure_detail,
-          effect_local, effect_system, potential_cause, severity, occurrence, detection,
+          effect_local, effect_system, effect_sg, potential_cause, severity, occurrence, detection,
           preventive_action, detection_action, confidence_score, action_priority, source, review_status, human_override)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'merged',$17,$18)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'merged',$18,$19)`,
         [m.session_id, m.item_no, m.sw_component, m.function_name, m.failure_mode,
-         m.failure_detail, m.effect_local, m.effect_system, m.potential_cause,
+         m.failure_detail, m.effect_local, m.effect_system, m.effect_sg ?? null, m.potential_cause,
          m.severity, m.occurrence, m.detection, m.preventive_action, m.detection_action,
          m.confidence_score, m.action_priority, m.review_status,
          m.human_override ? JSON.stringify(m.human_override) : null],

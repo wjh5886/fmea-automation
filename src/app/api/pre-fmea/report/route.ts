@@ -61,13 +61,15 @@ function getSgKey(fn: string, fm: string): string {
   return '-'
 }
 
-function getSpfLf(fn: string, fm: string, sg: string): string {
+// effect_sg(AI 할당) 우선 사용, 없으면 하드코딩 폴백
+function resolveSg(effectSg: string | null | undefined, fn: string, fm: string): string {
+  if (effectSg && effectSg.trim() && effectSg.trim() !== '-') return effectSg.trim()
+  return getSgKey(fn, fm)
+}
+
+function getSpfLf(sg: string, fm: string): string {
   if (sg === '-') return '-'
-  const cat = extractFrsCat(fn)
-  if (!cat) return '-'
-  if ((cat === 'JG1-FRS-sens' || cat === 'JG1-FRS-rotat') &&
-      (fm === 'CORRUPT' || fm === 'REVERSE')) return 'SPF'
-  return 'LF'
+  return (fm === 'CORRUPT' || fm === 'REVERSE') ? 'SPF' : 'LF'
 }
 
 function computeD2(fn: string, fm: string): number {
@@ -244,6 +246,7 @@ export async function GET(req: NextRequest) {
         p.failure_mode, p.failure_detail,
         p.severity, p.occurrence, p.detection,
         p.preventive_action, p.detection_action,
+        p.effect_sg,
         p.action_priority, p.review_status, p.source
       FROM pre_fmea_items p
       WHERE p.session_id = $1 AND p.source IN ('ai', 'icd')
@@ -265,8 +268,8 @@ export async function GET(req: NextRequest) {
       const pa = String(it.preventive_action ?? '')
       const da = String(it.detection_action  ?? '')
 
-      const sg    = getSgKey(fn, fm)
-      const spfLf = getSpfLf(fn, fm, sg)
+      const sg    = resolveSg(it.effect_sg as string | null, fn, fm)
+      const spfLf = getSpfLf(sg, fm)
       const hasSM = hasSafetyMechanism(pa, da)
 
       const recD  = computeRecD(fn, fm, ap, d)
@@ -287,20 +290,23 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // ② Safety Goal Violation Analysis
+    // ② Safety Goal Violation Analysis (effect_sg는 콤마 구분 다중 SG 가능)
     const sgMap: Record<string, SgStat> = {}
     for (const it of processed) {
       if (it.sg === '-') continue
-      if (!sgMap[it.sg]) sgMap[it.sg] = { sg: it.sg, totalSPF: 0, spfWithoutSM: 0, totalLF: 0, lfWithoutSM: 0 }
-      if (it.spfLf === 'SPF') {
-        sgMap[it.sg].totalSPF++
-        if (!it.hasSM) sgMap[it.sg].spfWithoutSM++
-      } else if (it.spfLf === 'LF') {
-        sgMap[it.sg].totalLF++
-        if (!it.hasSM) sgMap[it.sg].lfWithoutSM++
+      const sgList = it.sg.split(',').map((s: string) => s.trim()).filter(Boolean)
+      for (const sgId of sgList) {
+        if (!sgMap[sgId]) sgMap[sgId] = { sg: sgId, totalSPF: 0, spfWithoutSM: 0, totalLF: 0, lfWithoutSM: 0 }
+        if (it.spfLf === 'SPF') {
+          sgMap[sgId].totalSPF++
+          if (!it.hasSM) sgMap[sgId].spfWithoutSM++
+        } else if (it.spfLf === 'LF') {
+          sgMap[sgId].totalLF++
+          if (!it.hasSM) sgMap[sgId].lfWithoutSM++
+        }
       }
     }
-    const safetyGoalAnalysis = Object.values(sgMap)
+    const safetyGoalAnalysis = Object.values(sgMap).sort((a, b) => a.sg.localeCompare(b.sg))
 
     // ③ SOD Matrix (Initial vs Recommended)
     const sodMatrix = {

@@ -46,3 +46,8 @@ next-env.d.ts
 # runtime data
 /data/
 UsersUSER*.json
+
+# scripts temp output (generated, not source)
+scripts/prompt_output.txt
+scripts/result*.json
+scripts/spec_text.txt

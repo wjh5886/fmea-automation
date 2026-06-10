@@ -6,6 +6,7 @@ import type { PreFmeaSession, PreFmeaDocument, PreFmeaItem } from '@/lib/supabas
 type IcdComponentSummary = { name: string; count: number }
 type IcdParseResult = { count: number; components: IcdComponentSummary[]; filename: string }
 
+
 // ─── Upload slot state ────────────────────────────────────────────────────────
 type UploadSlot = {
   docRecord: PreFmeaDocument | null
@@ -163,6 +164,7 @@ export default function PreFmeaPage() {
   const [archError, setArchError]         = useState<string | null>(null)
   const archInputRef = useRef<HTMLInputElement>(null)
   const [dbcSlot, setDbcSlot]           = useState<UploadSlot>({ docRecord: null, uploading: false, error: null })
+  const [sysFmeaSlot, setSysFmeaSlot]   = useState<UploadSlot>({ docRecord: null, uploading: false, error: null })
   const [specDocs, setSpecDocs] = useState<PreFmeaDocument[]>([])
   const [specUploading, setSpecUploading] = useState(false)
   const [specError, setSpecError] = useState<string | null>(null)
@@ -184,10 +186,13 @@ export default function PreFmeaPage() {
   const [icdBuilding, setIcdBuilding] = useState(false)
 
   const [generating, setGenerating] = useState(false)
-  const [comparing, setComparing]   = useState(false)
-  const [enhancing, setEnhancing]   = useState(false)
-  const [exporting, setExporting]   = useState(false)
+  const [comparing, setComparing]     = useState(false)
+  const [enhancing, setEnhancing]     = useState(false)
+  const [applyingEnh, setApplyingEnh] = useState(false)
+  const [exporting, setExporting]     = useState(false)
   const [recalcingAp, setRecalcingAp] = useState(false)
+  const [enhanceTab, setEnhanceTab]   = useState<'matched' | 'humanOnly'>('matched')
+  const [selectedApply, setSelectedApply] = useState<Set<string>>(new Set())
   const [showAllMonitoring, setShowAllMonitoring] = useState(false)
   const [editableConclusion, setEditableConclusion] = useState('')
 
@@ -301,6 +306,7 @@ export default function PreFmeaPage() {
     setArchDocs([])
     setArchError(null)
     setDbcSlot({ docRecord: null, uploading: false, error: null })
+    setSysFmeaSlot({ docRecord: null, uploading: false, error: null })
     setIcdSlot({ docRecord: null, uploading: false, error: null })
     setIcdParseResult(null)
     setIcdExtracting(null)
@@ -320,6 +326,7 @@ export default function PreFmeaPage() {
     setArchDocs([])
     setArchError(null)
     setDbcSlot({ docRecord: null, uploading: false, error: null })
+    setSysFmeaSlot({ docRecord: null, uploading: false, error: null })
     setIcdSlot({ docRecord: null, uploading: false, error: null })
     setIcdParseResult(null)
     setIcdExtracting(null)
@@ -336,11 +343,13 @@ export default function PreFmeaPage() {
     const res = await fetch(`/api/pre-fmea/sessions/${sessionId}`)
     const { docs, items: its, gapSummary } = await res.json()
     const allDocs = docs as PreFmeaDocument[]
-    const templateDoc = allDocs?.find(d => d.doc_type === 'fmea_template') ?? null
-    const humanDoc    = allDocs?.find(d => d.doc_type === 'human_fmea')    ?? null
-    const dbcDoc      = allDocs?.find(d => d.doc_type === 'dbc_file')      ?? null
-    const icdDoc      = allDocs?.find(d => d.doc_type === 'icd_file')      ?? null
+    const templateDoc  = allDocs?.find(d => d.doc_type === 'fmea_template') ?? null
+    const humanDoc     = allDocs?.find(d => d.doc_type === 'human_fmea')    ?? null
+    const dbcDoc       = allDocs?.find(d => d.doc_type === 'dbc_file')      ?? null
+    const icdDoc       = allDocs?.find(d => d.doc_type === 'icd_file')      ?? null
+    const sysFmeaDoc   = allDocs?.find(d => d.doc_type === 'system_fmea')   ?? null
     setTemplateSlot({ docRecord: templateDoc, uploading: false, error: null })
+    setSysFmeaSlot({ docRecord: sysFmeaDoc, uploading: false, error: null })
     setArchDocs(allDocs?.filter(d => d.doc_type === 'architecture') ?? [])
     setArchError(null)
     setDbcSlot({ docRecord: dbcDoc, uploading: false, error: null })
@@ -378,7 +387,7 @@ export default function PreFmeaPage() {
   // ── 단일 슬롯 업로드 (template / human_fmea) ──
   const uploadFile = async (
     file: File,
-    docType: 'fmea_template' | 'human_fmea' | 'architecture' | 'dbc_file' | 'icd_file',
+    docType: 'fmea_template' | 'human_fmea' | 'architecture' | 'dbc_file' | 'icd_file' | 'system_fmea',
     setSlot: React.Dispatch<React.SetStateAction<UploadSlot>>,
   ) => {
     if (!activeSession) return
@@ -595,6 +604,28 @@ export default function PreFmeaPage() {
     }
   }
 
+  // ── 고도화 결과 선택 반영 ──
+  const applyEnhancement = async () => {
+    if (!activeSession || applyingEnh || !selectedApply.size) return
+    setApplyingEnh(true)
+    try {
+      const res = await fetch('/api/pre-fmea/apply-enhancement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeSession.id, merged_ids: [...selectedApply] }),
+      })
+      const json = await res.json()
+      if (!res.ok) { showToast(`반영 실패: ${json.error}`, 'error'); return }
+      setSelectedApply(new Set())
+      await loadSessionData(activeSession.id)
+      showToast(`✅ 반영 완료 — SOD 수정 ${json.updated}개, 누락 항목 추가 ${json.added}개`)
+    } catch (e) {
+      showToast(`오류: ${String(e)}`, 'error')
+    } finally {
+      setApplyingEnh(false)
+    }
+  }
+
   // ── AP 재계산 ──
   const recalcAp = async () => {
     if (!activeSession || recalcingAp) return
@@ -645,11 +676,12 @@ export default function PreFmeaPage() {
   }
 
   // ── Export Excel ──
-  const exportExcel = async () => {
+  const exportExcel = async (source?: 'merged') => {
     if (!activeSession || exporting) return
     setExporting(true)
     try {
-      const res = await fetch(`/api/pre-fmea/export?session_id=${activeSession.id}`)
+      const param = source ? `&source=${source}` : ''
+      const res = await fetch(`/api/pre-fmea/export?session_id=${activeSession.id}${param}`)
       if (!res.ok) {
         const json = await res.json()
         showToast(`내보내기 실패: ${json.error}`, 'error')
@@ -663,7 +695,7 @@ export default function PreFmeaPage() {
       const a = document.createElement('a')
       a.href = url; a.download = filename; a.click()
       URL.revokeObjectURL(url)
-      showToast('✅ Excel 파일 내보내기 완료')
+      showToast(`✅ Excel 내보내기 완료 (${source === 'merged' ? '고도화 결과' : '최종본'})`)
     } catch (e) {
       showToast(`오류: ${String(e)}`, 'error')
     } finally {
@@ -1040,7 +1072,16 @@ export default function PreFmeaPage() {
               onFile={f => uploadFile(f, 'fmea_template', setTemplateSlot)}
             />
 
-            {/* 2. DBC 파일 */}
+            {/* 2. 시스템 FMEA */}
+            <UploadCard
+              title="시스템 FMEA (선택)"
+              description=".xlsx / .xls — SG·SM 자동 추출"
+              accept=".xlsx,.xls"
+              slot={sysFmeaSlot}
+              onFile={f => uploadFile(f, 'system_fmea', setSysFmeaSlot)}
+            />
+
+            {/* 3. DBC 파일 */}
             <UploadCard
               title="DBC 파일 (선택)"
               description=".dbc / .txt — CAN 시그널 정의"
@@ -1049,7 +1090,7 @@ export default function PreFmeaPage() {
               onFile={f => uploadFile(f, 'dbc_file', setDbcSlot)}
             />
 
-            {/* 3. 시스템 아키텍처 — 다중 파일 */}
+            {/* 4. 시스템 아키텍처 — 다중 파일 */}
             <div className={`border-2 border-dashed rounded-xl p-4 transition-all
               ${archDocs.length > 0 ? 'border-emerald-400 bg-emerald-50/20' : archError ? 'border-red-400 bg-red-50/20' : 'border-slate-300 bg-white'}`}
             >
@@ -1100,7 +1141,7 @@ export default function PreFmeaPage() {
               {archError && <div className="text-xs text-red-600 mt-2">{archError}</div>}
             </div>
 
-            {/* 4. SW 설계사양서 — 다중 파일 */}
+            {/* 5. SW 설계사양서 — 다중 파일 */}
             <div className={`border-2 border-dashed rounded-xl p-4 transition-all
               ${specDocs.length > 0 ? 'border-emerald-400 bg-emerald-50/20' : specError ? 'border-red-400 bg-red-50/20' : 'border-slate-300 bg-white'}`}
             >
@@ -1152,6 +1193,7 @@ export default function PreFmeaPage() {
               {specError && <div className="text-xs text-red-600 mt-2">{specError}</div>}
             </div>
           </div>{/* grid end */}
+
           </div>{/* INPUT section end */}
 
           {/* 흐름 화살표 */}
@@ -1231,7 +1273,14 @@ export default function PreFmeaPage() {
             </div>
 
             {/* FMEA 작성 */}
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Step 2 — FMEA 자동 작성</p>
+            <div className="flex items-center gap-3 mb-2">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Step 2 — FMEA 자동 작성</p>
+              {sysFmeaSlot.docRecord && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
+                  <span>✓</span> 시스템 FMEA 반영됨
+                </span>
+              )}
+            </div>
             <div className="border-2 rounded-xl p-4 transition-colors
               border-slate-200 bg-slate-50/30">
               {/* 전제조건 체크리스트 */}
@@ -1319,7 +1368,7 @@ export default function PreFmeaPage() {
               </span>
               <div className="flex-1" />
               <button
-                onClick={exportExcel}
+                onClick={() => exportExcel()}
                 disabled={exporting}
                 className="border border-slate-300 text-slate-600 text-xs px-3 py-1.5 rounded hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
@@ -2029,6 +2078,134 @@ export default function PreFmeaPage() {
                 </div>
               </div>
 
+              {/* 고도화 결과 반영 패널 */}
+              {(() => {
+                const mergedItems = items.filter(i => i.source === 'merged')
+                if (!mergedItems.length) return null
+                const matchedItems = mergedItems.filter(i => i.human_override)
+                const humanOnlyItems = mergedItems.filter(i => !i.human_override && i.review_status === 'accepted' && !items.some(
+                  x => (x.source === 'icd' || x.source === 'ai') &&
+                       x.sw_component === i.sw_component && x.failure_mode === i.failure_mode
+                ))
+                const tabItems = enhanceTab === 'matched' ? matchedItems : humanOnlyItems
+                const allTabIds = new Set(tabItems.map(i => i.id))
+                const allSelected = tabItems.length > 0 && tabItems.every(i => selectedApply.has(i.id))
+
+                const toggleAll = () => {
+                  setSelectedApply(prev => {
+                    const next = new Set(prev)
+                    if (allSelected) { allTabIds.forEach(id => next.delete(id)) }
+                    else { allTabIds.forEach(id => next.add(id)) }
+                    return next
+                  })
+                }
+                const toggleOne = (id: string) => {
+                  setSelectedApply(prev => {
+                    const next = new Set(prev)
+                    next.has(id) ? next.delete(id) : next.add(id)
+                    return next
+                  })
+                }
+
+                return (
+                  <div className="bg-white border border-emerald-200 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="font-semibold text-slate-800 text-sm">고도화 결과 — 최종본 반영</h2>
+                        <p className="text-xs text-slate-400 mt-0.5">선택한 항목을 최종 SW FMEA(icd) 항목에 반영합니다.</p>
+                      </div>
+                      <button
+                        onClick={applyEnhancement}
+                        disabled={!selectedApply.size || applyingEnh}
+                        className={`shrink-0 ml-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
+                          ${selectedApply.size && !applyingEnh
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                      >
+                        {applyingEnh
+                          ? <><span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />반영 중...</>
+                          : `✅ 선택 반영 (${selectedApply.size}개)`}
+                      </button>
+                    </div>
+
+                    {/* 탭 */}
+                    <div className="flex gap-1 mb-3 border-b border-slate-100 pb-2">
+                      {([
+                        ['matched',   `SOD 수정 (${matchedItems.length}개)`],
+                        ['humanOnly', `전문가 전용 누락 (${humanOnlyItems.length}개)`],
+                      ] as ['matched' | 'humanOnly', string][]).map(([tab, label]) => (
+                        <button
+                          key={tab}
+                          onClick={() => setEnhanceTab(tab)}
+                          className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors
+                            ${enhanceTab === tab ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {tabItems.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-slate-400">해당 항목 없음</div>
+                    ) : (
+                      <div className="overflow-auto rounded-lg border border-slate-200" style={{ maxHeight: 340 }}>
+                        <table className="text-xs w-full">
+                          <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                            <tr>
+                              <th className="px-2 py-2 w-8">
+                                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="cursor-pointer" />
+                              </th>
+                              <th className="px-2 py-2 text-left font-medium text-slate-600">SW 컴포넌트</th>
+                              <th className="px-2 py-2 text-left font-medium text-slate-600">고장 형태</th>
+                              {enhanceTab === 'matched' ? (
+                                <>
+                                  <th className="px-2 py-2 text-center font-medium text-slate-600">AI S/O/D</th>
+                                  <th className="px-2 py-2 text-center font-medium text-slate-600">전문가 S/O/D</th>
+                                </>
+                              ) : (
+                                <th className="px-2 py-2 text-center font-medium text-slate-600">S/O/D</th>
+                              )}
+                              <th className="px-2 py-2 text-center font-medium text-slate-600">AP</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {tabItems.map(item => {
+                              const ho = item.human_override as Record<string, unknown> | null
+                              return (
+                                <tr key={item.id} className={`hover:bg-emerald-50/40 transition-colors ${selectedApply.has(item.id) ? 'bg-emerald-50' : ''}`}>
+                                  <td className="px-2 py-1.5 text-center">
+                                    <input type="checkbox" checked={selectedApply.has(item.id)} onChange={() => toggleOne(item.id)} className="cursor-pointer" />
+                                  </td>
+                                  <td className="px-2 py-1.5 font-mono text-slate-600 max-w-[150px] truncate" title={item.sw_component ?? ''}>{item.sw_component ?? '-'}</td>
+                                  <td className="px-2 py-1.5"><span className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">{item.failure_mode ?? '-'}</span></td>
+                                  {enhanceTab === 'matched' && ho ? (
+                                    <>
+                                      <td className="px-2 py-1.5 text-center text-slate-400">
+                                        {String(ho.ai_severity ?? '-')}/{String(ho.ai_occurrence ?? '-')}/{String(ho.ai_detection ?? '-')}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-center font-semibold text-emerald-700">
+                                        {String(ho.human_severity ?? '-')}/{String(ho.human_occurrence ?? '-')}/{String(ho.human_detection ?? '-')}
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <td className="px-2 py-1.5 text-center text-slate-600">
+                                      {item.severity ?? '-'}/{item.occurrence ?? '-'}/{item.detection ?? '-'}
+                                    </td>
+                                  )}
+                                  <td className="px-2 py-1.5 text-center">
+                                    <ApBadge ap={item.action_priority ?? ''} />
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* AP 재계산 */}
               <div className="bg-white border border-slate-200 rounded-xl p-5">
                 <div className="flex items-start justify-between">
@@ -2069,6 +2246,47 @@ export default function PreFmeaPage() {
                   </div>
                 )}
               </div>
+              {/* 고도화 반영본 Excel 내보내기 */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="font-semibold text-slate-800 text-sm">최종본 Excel 내보내기</h2>
+                    <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+                      고도화 반영 결과가 적용된 최종 SW FMEA 항목을 Excel로 추출합니다.
+                      <br />
+                      <span className="text-slate-500">1단계 OUTPUT의 내보내기는 원본 AI 생성본, 이 버튼은 선택 반영 후 최종본 기준입니다.</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => exportExcel()}
+                    disabled={exporting || displayItems.length === 0}
+                    className={`shrink-0 ml-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
+                      ${!exporting && displayItems.length > 0
+                        ? 'bg-slate-800 text-white hover:bg-slate-700'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                  >
+                    {exporting
+                      ? <><span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />내보내는 중...</>
+                      : '↓ 최종본 Excel 내보내기'}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+                  <span>총 <strong className="text-slate-700">{displayItems.length.toLocaleString()}</strong>개 항목</span>
+                  <span className="text-slate-300">|</span>
+                  {(['VH','H','M','L'] as const).map(ap => {
+                    const cnt = displayItems.filter(i => i.action_priority === ap).length
+                    if (!cnt) return null
+                    return (
+                      <span key={ap} className="flex items-center gap-1">
+                        <ApBadge ap={ap} /><span>{cnt.toLocaleString()}</span>
+                      </span>
+                    )
+                  })}
+                  <span className="text-slate-300">|</span>
+                  <span>review_status=accepted <strong className="text-emerald-600">{displayItems.filter(i => i.review_status === 'accepted').length.toLocaleString()}</strong>개</span>
+                </div>
+              </div>
+
             </div>
           )}
         </div>

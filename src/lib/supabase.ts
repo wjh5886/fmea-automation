@@ -78,7 +78,7 @@ export type PreFmeaIcdVariable = {
 export type PreFmeaDocument = {
   id: string
   session_id: string
-  doc_type: 'fmea_template' | 'design_spec' | 'human_fmea' | 'architecture' | 'dbc_file' | 'icd_file'
+  doc_type: 'fmea_template' | 'design_spec' | 'human_fmea' | 'architecture' | 'dbc_file' | 'icd_file' | 'system_fmea'
   filename: string
   storage_path: string | null
   parsed_text: string | null
