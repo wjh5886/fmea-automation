@@ -73,83 +73,86 @@ export default function ReferenceDataPanel({
   }
 
   const Th = ({ children }: { children: React.ReactNode }) => (
-    <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">{children}</th>
+    <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">{children}</th>
   )
   const Td = ({ children, cls }: { children: React.ReactNode; cls?: string }) => (
-    <td className={`px-3 py-2 text-slate-600 align-top ${cls ?? ''}`}>{children}</td>
+    <td className={`px-4 py-3 text-slate-600 align-top ${cls ?? ''}`}>{children}</td>
   )
 
   return (
     <div>
-      {/* 검색 */}
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <span className="text-sm text-slate-500">Interface ({interfaceRows.length})</span>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="검색..."
-          className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-      </div>
-      <p className="text-xs text-slate-400 mb-3">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
+      <p className="text-xs text-slate-400 mb-2">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
 
       {/* Interface */}
-      <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 16rem)' }}>
-        <table className="w-full text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
-            <tr>
-              <Th>SW Unit</Th>
-              <Th>Interface(변수)명</Th>
-              <Th>구분</Th>
-              <Th>타입</Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredInterfaces.length === 0 ? (
-              <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-400">데이터가 없습니다.</td></tr>
-            ) : filteredInterfaces.map(r => (
-              <tr key={r.key} className="hover:bg-slate-50">
-                <Td cls="font-mono">{r.component}</Td>
-                <Td>
-                  <input
-                    type="text"
-                    defaultValue={r.variableName}
-                    onBlur={e => {
-                      if (e.target.value !== r.variableName) updateRow(r, { variableName: e.target.value })
-                    }}
-                    disabled={savingKey === r.key}
-                    className="border border-slate-200 rounded px-1.5 py-1 text-xs font-mono text-slate-800 w-40 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
-                  />
-                </Td>
-                <Td>
-                  <select
-                    value={r.category ?? ''}
-                    onChange={e => updateRow(r, { category: e.target.value })}
-                    disabled={savingKey === r.key}
-                    className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
-                  >
-                    {CATEGORY_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt || '-'}</option>
-                    ))}
-                  </select>
-                </Td>
-                <Td>
-                  <input
-                    type="text"
-                    defaultValue={r.variableType ?? ''}
-                    onBlur={e => {
-                      if (e.target.value !== (r.variableType ?? '')) updateRow(r, { variableType: e.target.value })
-                    }}
-                    disabled={savingKey === r.key}
-                    placeholder="-"
-                    className="border border-slate-200 rounded px-1.5 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
-                  />
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+          <h2 className="font-semibold text-slate-800 text-sm">Interface ({interfaceRows.length})</h2>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="검색..."
+            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+        </div>
+        {filteredInterfaces.length === 0 ? (
+          <p className="text-slate-400 text-sm text-center py-8">{interfaceRows.length === 0 ? '데이터가 없습니다.' : '검색 결과가 없습니다.'}</p>
+        ) : (
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                <tr>
+                  <Th>SW Unit</Th>
+                  <Th>Interface(변수)명</Th>
+                  <Th>구분</Th>
+                  <Th>타입</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredInterfaces.map(r => (
+                  <tr key={r.key} className="hover:bg-slate-50">
+                    <Td cls="font-mono font-semibold text-slate-700 whitespace-nowrap">{r.component}</Td>
+                    <Td>
+                      <input
+                        type="text"
+                        defaultValue={r.variableName}
+                        onBlur={e => {
+                          if (e.target.value !== r.variableName) updateRow(r, { variableName: e.target.value })
+                        }}
+                        disabled={savingKey === r.key}
+                        className="border border-slate-200 rounded px-1.5 py-1 text-sm font-mono text-slate-800 w-40 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                      />
+                    </Td>
+                    <Td>
+                      <select
+                        value={r.category ?? ''}
+                        onChange={e => updateRow(r, { category: e.target.value })}
+                        disabled={savingKey === r.key}
+                        className="border border-slate-200 rounded px-1.5 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                      >
+                        {CATEGORY_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt || '-'}</option>
+                        ))}
+                      </select>
+                    </Td>
+                    <Td>
+                      <input
+                        type="text"
+                        defaultValue={r.variableType ?? ''}
+                        onBlur={e => {
+                          if (e.target.value !== (r.variableType ?? '')) updateRow(r, { variableType: e.target.value })
+                        }}
+                        disabled={savingKey === r.key}
+                        placeholder="-"
+                        className="border border-slate-200 rounded px-1.5 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                      />
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

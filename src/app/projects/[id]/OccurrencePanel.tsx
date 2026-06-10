@@ -100,7 +100,7 @@ export default function OccurrencePanel({
     <select
       value={value}
       onChange={e => onChange(Number(e.target.value))}
-      className="border border-slate-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 w-full"
+      className="border border-slate-200 rounded px-1.5 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 w-full"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -109,96 +109,100 @@ export default function OccurrencePanel({
   return (
     <div>
       {showExample && <OccurrenceExampleModal onClose={() => setShowExample(false)} />}
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <span className="text-sm text-slate-500">O값 평가 ({componentRows.length})</span>
-        <div className="flex items-center gap-2 shrink-0">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="검색..."
-            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
-          <button
-            onClick={() => setShowExample(true)}
-            className="text-xs text-blue-600 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50 whitespace-nowrap"
-          >
-            📋 작성 예시
-          </button>
+      <p className="text-xs text-slate-400 mb-2">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
+          <h2 className="font-semibold text-slate-800 text-sm">O값 평가 ({componentRows.length})</h2>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="검색..."
+              className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+            <button
+              onClick={() => setShowExample(true)}
+              className="text-xs text-blue-600 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50 whitespace-nowrap"
+            >
+              📋 작성 예시
+            </button>
+          </div>
         </div>
-      </div>
-      <p className="text-xs text-slate-400 mb-3">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">SW Unit</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 수</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">신규 SW Unit</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 변경</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">필드 이슈</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">변경 유무</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">O값</th>
-              <th className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">수동 입력</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredRows.length === 0 ? (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-slate-400">{componentRows.length === 0 ? 'SW Unit이 없습니다.' : '검색 결과가 없습니다.'}</td></tr>
-            ) : filteredRows.map(r => {
-              const sel = getSel(r.id)
-              const o = oValue(r.id)
-              const isManual = overrides[r.id] != null
-              const state = applyState[r.id] ?? 'idle'
-              return (
-                <tr key={r.id} className="hover:bg-slate-50">
-                  <td className="px-3 py-2 align-top font-mono font-medium text-slate-800 whitespace-nowrap">{r.name}</td>
-                  <td className="px-3 py-2 align-top text-slate-500">{r.intfCount} ({r.itemCount}건)</td>
-                  <td className="px-3 py-2 align-top w-32">
-                    <Select value={sel.newComp} options={NEW_COMP_OPTIONS} onChange={v => setSel(r.id, { newComp: v })} />
-                  </td>
-                  <td className="px-3 py-2 align-top w-32">
-                    <Select value={sel.intfChange} options={INTF_CHANGE_OPTIONS} onChange={v => setSel(r.id, { intfChange: v })} />
-                  </td>
-                  <td className="px-3 py-2 align-top w-28">
-                    <Select value={sel.fieldIssue} options={FIELD_ISSUE_OPTIONS} onChange={v => setSel(r.id, { fieldIssue: v })} />
-                  </td>
-                  <td className="px-3 py-2 align-top w-24">
-                    <Select value={sel.hasChange} options={HAS_CHANGE_OPTIONS} onChange={v => setSel(r.id, { hasChange: v })} />
-                  </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${oColorClass(o)}`}>{o}</span>
-                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                        {state === 'saving' ? '저장 중...' : state === 'saved' ? '✓ 반영됨' : ''}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <input
-                        type="number" min={1} max={10}
-                        value={overrides[r.id] ?? ''}
-                        onChange={e => setOverride(r.id, e.target.value ? Number(e.target.value) : null)}
-                        onBlur={() => commitOverride(r.id)}
-                        placeholder="-"
-                        className="w-12 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      />
-                      {isManual && (
-                        <button
-                          onClick={() => resetOverride(r.id)}
-                          className="text-slate-400 hover:text-slate-600 text-xs underline"
-                        >
-                          초기화
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        {filteredRows.length === 0 ? (
+          <p className="text-slate-400 text-sm text-center py-8">{componentRows.length === 0 ? 'SW Unit이 없습니다.' : '검색 결과가 없습니다.'}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">SW Unit</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 수</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">신규 SW Unit</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">인터페이스 변경</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">필드 이슈</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-left whitespace-nowrap">변경 유무</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-center whitespace-nowrap">O값</th>
+                  <th className="px-4 py-2 font-medium text-slate-600 text-center whitespace-nowrap">수동 입력</th>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRows.map(r => {
+                  const sel = getSel(r.id)
+                  const o = oValue(r.id)
+                  const isManual = overrides[r.id] != null
+                  const state = applyState[r.id] ?? 'idle'
+                  return (
+                    <tr key={r.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 align-top font-mono font-semibold text-slate-700 whitespace-nowrap">{r.name}</td>
+                      <td className="px-4 py-3 align-top text-slate-500">{r.intfCount} ({r.itemCount}건)</td>
+                      <td className="px-4 py-3 align-top w-32">
+                        <Select value={sel.newComp} options={NEW_COMP_OPTIONS} onChange={v => setSel(r.id, { newComp: v })} />
+                      </td>
+                      <td className="px-4 py-3 align-top w-32">
+                        <Select value={sel.intfChange} options={INTF_CHANGE_OPTIONS} onChange={v => setSel(r.id, { intfChange: v })} />
+                      </td>
+                      <td className="px-4 py-3 align-top w-28">
+                        <Select value={sel.fieldIssue} options={FIELD_ISSUE_OPTIONS} onChange={v => setSel(r.id, { fieldIssue: v })} />
+                      </td>
+                      <td className="px-4 py-3 align-top w-24">
+                        <Select value={sel.hasChange} options={HAS_CHANGE_OPTIONS} onChange={v => setSel(r.id, { hasChange: v })} />
+                      </td>
+                      <td className="px-4 py-3 align-top text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${oColorClass(o)}`}>{o}</span>
+                          <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                            {state === 'saving' ? '저장 중...' : state === 'saved' ? '✓ 반영됨' : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <input
+                            type="number" min={1} max={10}
+                            value={overrides[r.id] ?? ''}
+                            onChange={e => setOverride(r.id, e.target.value ? Number(e.target.value) : null)}
+                            onBlur={() => commitOverride(r.id)}
+                            placeholder="-"
+                            className="w-12 border border-slate-200 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          {isManual && (
+                            <button
+                              onClick={() => resetOverride(r.id)}
+                              className="text-slate-400 hover:text-slate-600 text-xs underline"
+                            >
+                              초기화
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
