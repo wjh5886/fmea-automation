@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS pre_fmea_gaps (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS pre_fmea_knowledge (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  content       TEXT NOT NULL,
+  content_type  TEXT NOT NULL CHECK (content_type IN ('fmea_example','gap_lesson','domain_rule','sod_rule','missing_pattern','quality_hint')),
+  metadata      JSONB,
+  usage_count   INT NOT NULL DEFAULT 0,
+  quality_score FLOAT CHECK (quality_score BETWEEN 0 AND 1),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_fmea_items_project  ON fmea_items(project_id);
 CREATE INDEX IF NOT EXISTS idx_fmea_items_unit     ON fmea_items(sw_unit_id);

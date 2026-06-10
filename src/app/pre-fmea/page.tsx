@@ -195,6 +195,11 @@ export default function PreFmeaPage() {
   const [selectedApply, setSelectedApply] = useState<Set<string>>(new Set())
   const [showAllMonitoring, setShowAllMonitoring] = useState(false)
   const [editableConclusion, setEditableConclusion] = useState('')
+  const [extractingRules, setExtractingRules] = useState(false)
+  type KnowledgeRule = { id: string; content: string; content_type: string; quality_score: number; usage_count: number; created_at: string }
+  const [knowledgeRules, setKnowledgeRules] = useState<KnowledgeRule[]>([])
+  const [showKnowledge, setShowKnowledge] = useState(false)
+  const [knowledgeLoaded, setKnowledgeLoaded] = useState(false)
 
   // ── Report ──
   type ReportMeta = { vehicle: string; item: string; customer: string; department: string; author: string; version: string }
@@ -623,6 +628,52 @@ export default function PreFmeaPage() {
       showToast(`오류: ${String(e)}`, 'error')
     } finally {
       setApplyingEnh(false)
+    }
+  }
+
+  // ── 작성 규칙 학습 ──
+  const extractRules = async () => {
+    if (!activeSession || extractingRules) return
+    setExtractingRules(true)
+    try {
+      const res = await fetch('/api/pre-fmea/extract-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeSession.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) { showToast(`규칙 학습 실패: ${json.error}`, 'error'); return }
+      showToast(`✅ 규칙 학습 완료 — ${json.rulesAdded}개 추가 (${json.rulesSkipped ?? 0}개 중복 스킵)`)
+      await loadKnowledge()
+      setShowKnowledge(true)
+    } catch (e) {
+      showToast(`오류: ${String(e)}`, 'error')
+    } finally {
+      setExtractingRules(false)
+    }
+  }
+
+  const loadKnowledge = async () => {
+    try {
+      const res = await fetch('/api/pre-fmea/knowledge')
+      if (!res.ok) return
+      const rows = await res.json()
+      setKnowledgeRules(Array.isArray(rows) ? rows : [])
+      setKnowledgeLoaded(true)
+    } catch { /* ignore */ }
+  }
+
+  const deleteKnowledge = async (id: string) => {
+    try {
+      await fetch('/api/pre-fmea/knowledge', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      setKnowledgeRules(prev => prev.filter(r => r.id !== id))
+      showToast('규칙 삭제 완료')
+    } catch (e) {
+      showToast(`삭제 실패: ${String(e)}`, 'error')
     }
   }
 
@@ -2285,6 +2336,88 @@ export default function PreFmeaPage() {
                   <span className="text-slate-300">|</span>
                   <span>review_status=accepted <strong className="text-emerald-600">{displayItems.filter(i => i.review_status === 'accepted').length.toLocaleString()}</strong>개</span>
                 </div>
+              </div>
+
+              {/* ── 작성 규칙 학습 ── */}
+              <div className="bg-white border border-indigo-200 rounded-xl p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="font-semibold text-indigo-800 text-sm flex items-center gap-1.5">
+                      🧠 작성 규칙 학습
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+                      고도화 결과(SOD 차이, 누락 패턴)를 분석해 AI 작성 규칙으로 저장합니다.
+                      <br />다음 문서 생성 시 학습된 규칙이 자동으로 프롬프트에 적용됩니다.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    {knowledgeLoaded && (
+                      <button
+                        onClick={() => { setShowKnowledge(v => !v); if (!knowledgeLoaded) loadKnowledge() }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      >
+                        {showKnowledge ? '▲ 규칙 숨기기' : `▼ 저장된 규칙 보기 (${knowledgeRules.length}개)`}
+                      </button>
+                    )}
+                    <button
+                      onClick={extractRules}
+                      disabled={extractingRules || !activeSession || activeSession.status !== 'upgraded'}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
+                        ${!extractingRules && activeSession?.status === 'upgraded'
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                    >
+                      {extractingRules
+                        ? <><span className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-transparent rounded-full animate-spin" />학습 중...</>
+                        : '🧠 규칙 학습 실행'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 규칙 목록 */}
+                {showKnowledge && (
+                  <div className="mt-4 pt-4 border-t border-indigo-100 space-y-2">
+                    {knowledgeRules.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">저장된 규칙이 없습니다.</p>
+                    ) : (
+                      <>
+                        {(['sod_rule', 'missing_pattern', 'quality_hint'] as const).map(type => {
+                          const typeRules = knowledgeRules.filter(r => r.content_type === type)
+                          if (!typeRules.length) return null
+                          const typeLabel: Record<string, string> = {
+                            sod_rule: 'SOD 보정 규칙',
+                            missing_pattern: '누락 패턴',
+                            quality_hint: '품질 지침',
+                          }
+                          const typeColor: Record<string, string> = {
+                            sod_rule: 'bg-blue-50 border-blue-100 text-blue-700',
+                            missing_pattern: 'bg-amber-50 border-amber-100 text-amber-700',
+                            quality_hint: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+                          }
+                          return (
+                            <div key={type}>
+                              <p className="text-xs font-semibold text-slate-500 mb-1.5">{typeLabel[type]}</p>
+                              {typeRules.map(rule => (
+                                <div key={rule.id} className={`flex items-start justify-between gap-2 rounded-lg border px-3 py-2 mb-1 ${typeColor[type]}`}>
+                                  <p className="text-xs flex-1 leading-relaxed">{rule.content}</p>
+                                  <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                                    <span className="text-xs opacity-60">사용 {rule.usage_count}회</span>
+                                    <span className="text-xs opacity-60">품질 {Math.round(rule.quality_score * 100)}%</span>
+                                    <button
+                                      onClick={() => deleteKnowledge(rule.id)}
+                                      className="text-xs opacity-50 hover:opacity-100 transition-opacity"
+                                      title="규칙 삭제"
+                                    >✕</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>
