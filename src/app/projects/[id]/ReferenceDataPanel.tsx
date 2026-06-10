@@ -82,8 +82,10 @@ export default function ReferenceDataPanel({
   return (
     <div>
       {/* 검색 */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="text-sm text-slate-500">Interface ({interfaceRows.length})</span>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <p className="text-sm text-slate-500">
+          Interface ({interfaceRows.length}) — 구분/타입/변수명을 수정하면 동일한 (SW Unit, 변수명)을 가진 모든 FMEA 항목에 즉시 반영됩니다.
+        </p>
         <div className="flex-1" />
         <input
           type="text"
