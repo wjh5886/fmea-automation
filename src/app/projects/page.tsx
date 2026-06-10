@@ -34,7 +34,7 @@ function ProjectCard({
   }, [menuOpen])
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 hover-shine hover:border-blue-400 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 flex items-center justify-between group">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 hover-shine hover:border-blue-500 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 flex items-center justify-between group">
       <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
         <div className="font-semibold text-slate-800">{project.name}</div>
         {project.vehicle_model && <div className="text-sm text-slate-500 mt-1">차종: {project.vehicle_model}</div>}

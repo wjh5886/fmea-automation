@@ -8,15 +8,15 @@ export default function Home() {
         <p className="text-slate-500 text-lg">SW FMEA 항목 관리 및 AI 기반 위험도 자동 분석</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
-        <Link href="/projects" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-400 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
+        <Link href="/projects" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-500 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
           <div className="font-semibold text-slate-800">프로젝트 관리</div>
           <div className="text-sm text-slate-500 mt-1">FMEA 프로젝트 생성 및 관리</div>
         </Link>
-        <Link href="/projects/import" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-400 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
+        <Link href="/projects/import" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-500 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
           <div className="font-semibold text-slate-800">AI 자동 분석</div>
           <div className="text-sm text-slate-500 mt-1">ARXML 업로드 → S/O/D 자동 생성</div>
         </Link>
-        <Link href="/dashboard" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-400 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
+        <Link href="/dashboard" className="bg-white rounded-xl border border-slate-200 p-6 hover-shine hover:border-blue-500 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 text-center">
           <div className="font-semibold text-slate-800">RPN 대시보드</div>
           <div className="text-sm text-slate-500 mt-1">위험도 현황 및 통계 분석</div>
         </Link>
