@@ -127,7 +127,7 @@ export default function OccurrencePanel({
               onClick={() => setShowExample(true)}
               className="text-xs text-blue-600 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50 whitespace-nowrap"
             >
-              📋 작성 예시
+              📋 작성 기준
             </button>
           </div>
         </div>
@@ -221,7 +221,7 @@ function OccurrenceExampleModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-          <h2 className="font-bold text-slate-800 text-sm">Occurrence(O) 평가 — 작성 예시</h2>
+          <h2 className="font-bold text-slate-800 text-sm">Occurrence(O) 평가 — 작성 기준</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
         </div>
         <div className="p-5 overflow-y-auto">

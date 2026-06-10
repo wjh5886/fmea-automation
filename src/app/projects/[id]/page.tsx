@@ -169,10 +169,10 @@ export default function ProjectDetailPage() {
             className="border border-red-200 text-red-500 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition-colors">
             🗑️ 삭제
           </button>
-          <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-800 transition-colors">
+          <Link href={`/projects/${id}/fmea`} className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-700 transition-colors">
             📋 FMEA 테이블 →
           </Link>
-          <Link href={`/projects/${id}/fmea?view=report`} className="bg-white border border-slate-300 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+          <Link href={`/projects/${id}/fmea?view=report`} className="bg-violet-500 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-violet-600 transition-colors">
             📊 분석 리포트 →
           </Link>
         </div>
@@ -194,10 +194,13 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* 탭 */}
-      <div className="flex border-b border-slate-200 mb-6">
+      <div className="flex gap-1 border-b border-slate-200 mb-6">
         {([['overview', 'SW Unit'], ['reference', `Interface (${interfaceCount})`], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['occurrence', `Occurrence(O) 평가 (${units.length})`]] as [Tab, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            className={`px-5 py-2.5 text-sm font-medium rounded-t transition-colors
+              ${tab === key
+                ? 'bg-white border border-b-white border-slate-200 text-blue-600 -mb-px'
+                : 'text-slate-500 hover:text-slate-700'}`}>
             {label}
           </button>
         ))}

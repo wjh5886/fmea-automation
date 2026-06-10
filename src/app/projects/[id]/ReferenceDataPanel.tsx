@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import type { FmeaItem, SwUnit } from '@/lib/supabase'
 
 type InterfaceRow = {
@@ -88,13 +89,21 @@ export default function ReferenceDataPanel({
             <h2 className="font-semibold text-slate-800">Interface ({interfaceRows.length})</h2>
             <p className="text-xs text-slate-400 mt-0.5">수정한 값은 같은 SW Unit·변수명을 가진 모든 FMEA 항목(현재 프로젝트 내)에 함께 반영됩니다.</p>
           </div>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="검색..."
-            className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="검색..."
+              className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+            <Link
+              href={`/projects/compare?b=${projectId}`}
+              className="text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 whitespace-nowrap"
+            >
+              🔗 다른 차종에서 가져오기
+            </Link>
+          </div>
         </div>
         {filteredInterfaces.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-8">{interfaceRows.length === 0 ? '데이터가 없습니다.' : '검색 결과가 없습니다.'}</p>

@@ -70,7 +70,12 @@ export default function ComparePage() {
 
   useEffect(() => {
     supabase.from('projects').select('id,name,vehicle_model').order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setProjects(data) })
+      .then(({ data }) => {
+        if (data) setProjects(data)
+        const params = new URLSearchParams(window.location.search)
+        const b = params.get('b')
+        if (b) setProjB(b)
+      })
   }, [])
 
   async function runCompare() {
