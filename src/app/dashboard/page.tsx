@@ -218,9 +218,6 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {/* 차종 간 비교 */}
-          <CrossModelComparison data={crossData} />
-
           {/* Failure Mode 분포 */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
@@ -274,6 +271,9 @@ export default function DashboardPage() {
               <div className="ml-auto text-xs text-slate-400">⚠ = 고위험(≥100) 수</div>
             </div>
           </div>
+
+          {/* 차종 간 비교 */}
+          <CrossModelComparison data={crossData} />
 
           {/* 통합 상세 분석 */}
           <IntegratedReportSection projects={allProjects} />
