@@ -94,7 +94,13 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
     return { sgId, info: canonicalSg[sgId] ?? sgInfo.get(sgId), cells, projectsAffected: cells.filter(c => c.count > 0).length }
   }).sort((a, b) => b.projectsAffected - a.projectsAffected || a.sgId.localeCompare(b.sgId))
 
-  const visibleSgRows = sgRows.filter(r => !hiddenSgs.has(r.sgId))
+  // 위반 데이터가 있는 차종을 왼쪽으로 정렬
+  const projectTotals = group.map((_, i) => sgRows.reduce((sum, row) => sum + row.cells[i].count, 0))
+  const order = group.map((_, i) => i).sort((a, b) => projectTotals[b] - projectTotals[a])
+  const sortedGroup = order.map(i => group[i])
+  const sortedSgRows = sgRows.map(row => ({ ...row, cells: order.map(i => row.cells[i]) }))
+
+  const visibleSgRows = sortedSgRows.filter(r => !hiddenSgs.has(r.sgId))
 
   function toggleSg(sgId: string) {
     setHiddenSgs(prev => {
@@ -170,12 +176,12 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
             <div className="text-center py-6 text-sm text-slate-300">선택된 SG가 없습니다.</div>
           ) : (
           <div
-            className="inline-grid gap-1.5 min-w-full"
-            style={{ gridTemplateColumns: `140px repeat(${group.length}, minmax(76px, 1fr))` }}
+            className="inline-grid gap-1 min-w-full"
+            style={{ gridTemplateColumns: `120px repeat(${sortedGroup.length}, minmax(52px, 1fr))` }}
           >
             <div />
-            {group.map(({ project }) => (
-              <div key={project.id} className="text-xs font-medium text-slate-600 text-center truncate px-1 self-end pb-1" title={project.name}>
+            {sortedGroup.map(({ project }) => (
+              <div key={project.id} className="text-[.65rem] font-medium text-slate-600 text-center truncate px-0.5 self-end pb-1" title={project.name}>
                 {project.name}
               </div>
             ))}
@@ -193,12 +199,12 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
                 {row.cells.map((c, i) => (
                   <div
                     key={i}
-                    className={`rounded-lg h-14 flex flex-col items-center justify-center transition-colors ${heatColor(c.count, c.maxS)}`}
+                    className={`rounded-lg h-11 flex flex-col items-center justify-center transition-colors ${heatColor(c.count, c.maxS)}`}
                   >
                     {c.count > 0 ? (
                       <>
-                        <span className="text-base font-bold leading-tight">{c.count}</span>
-                        <span className="text-[.65rem] opacity-80 leading-tight">S{c.maxS}</span>
+                        <span className="text-sm font-bold leading-tight">{c.count}</span>
+                        <span className="text-[.6rem] opacity-80 leading-tight">S{c.maxS}</span>
                       </>
                     ) : (
                       <span className="text-xs">-</span>
