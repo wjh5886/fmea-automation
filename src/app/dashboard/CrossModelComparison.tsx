@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import type { Project } from '@/lib/supabase'
 
 export type CrossItem = {
@@ -26,8 +26,18 @@ const ASIL_COLORS: Record<string, string> = {
   B: 'bg-yellow-100 text-yellow-700', A: 'bg-blue-100 text-blue-700', QM: 'bg-slate-100 text-slate-600',
 }
 
-const isSgViolation = (sg: string | null | undefined): sg is string =>
-  !!sg && !['X', '-', ''].includes(sg.trim())
+// "SG1" → "SG01", "SG1 / SG2 / SG3" → ["SG01","SG02","SG03"] 처럼 표기 차이/복수값을 정규화
+function splitSgIds(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  return raw
+    .split(/[/,]/)
+    .map(s => s.trim())
+    .filter(s => s && !['X', '-'].includes(s.toUpperCase()))
+    .map(s => {
+      const m = s.toUpperCase().match(/^SG0*(\d+)$/)
+      return m ? `SG${m[1].padStart(2, '0')}` : s.toUpperCase()
+    })
+}
 
 function heatColor(count: number, maxS: number) {
   if (count === 0) return 'bg-slate-50 text-slate-300'
@@ -48,12 +58,14 @@ const LEGEND = [
 ]
 
 function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossData[] }) {
+  const [hiddenSgs, setHiddenSgs] = useState<Set<string>>(new Set())
+
   // ── Safety Goal 위반 비교 ──
   const sgIds = new Set<string>()
   const sgInfo = new Map<string, SgInfo>()
   for (const { items, sgs } of group) {
     for (const i of items) {
-      if (isSgViolation(i.effect_safety_goal)) sgIds.add(i.effect_safety_goal!.trim())
+      for (const id of splitSgIds(i.effect_safety_goal)) sgIds.add(id)
     }
     for (const sg of sgs) {
       if (!sgInfo.has(sg.sg_id)) sgInfo.set(sg.sg_id, sg)
@@ -61,7 +73,7 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
   }
   const sgRows = [...sgIds].sort().map(sgId => {
     const cells = group.map(({ items }) => {
-      const violations = items.filter(i => (i.effect_safety_goal ?? '').trim() === sgId)
+      const violations = items.filter(i => splitSgIds(i.effect_safety_goal).includes(sgId))
       return {
         count: violations.length,
         maxS: violations.length ? Math.max(...violations.map(v => v.severity ?? 0)) : 0,
@@ -69,6 +81,17 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
     })
     return { sgId, info: sgInfo.get(sgId), cells, projectsAffected: cells.filter(c => c.count > 0).length }
   }).sort((a, b) => b.projectsAffected - a.projectsAffected || a.sgId.localeCompare(b.sgId))
+
+  const visibleSgRows = sgRows.filter(r => !hiddenSgs.has(r.sgId))
+
+  function toggleSg(sgId: string) {
+    setHiddenSgs(prev => {
+      const next = new Set(prev)
+      if (next.has(sgId)) next.delete(sgId)
+      else next.add(sgId)
+      return next
+    })
+  }
 
   // ── 고장 유형(FM) 비교 ──
   const fmRows = FM_ORDER.map(fm => {
@@ -105,6 +128,35 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
 
       {sgRows.length > 0 && (
         <div className="overflow-x-auto">
+          {/* SG 선택 토글 */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            <span className="text-xs text-slate-400 mr-0.5">SG 선택</span>
+            {sgRows.map(row => {
+              const hidden = hiddenSgs.has(row.sgId)
+              return (
+                <button
+                  key={row.sgId}
+                  onClick={() => toggleSg(row.sgId)}
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                    hidden
+                      ? 'border-slate-200 text-slate-300 bg-white hover:border-slate-300'
+                      : 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                  }`}
+                >
+                  {row.sgId}
+                </button>
+              )
+            })}
+            {hiddenSgs.size > 0 && (
+              <button onClick={() => setHiddenSgs(new Set())} className="text-xs text-slate-400 hover:text-blue-600 ml-1">
+                전체 보기
+              </button>
+            )}
+          </div>
+
+          {visibleSgRows.length === 0 ? (
+            <div className="text-center py-6 text-sm text-slate-300">선택된 SG가 없습니다.</div>
+          ) : (
           <div
             className="inline-grid gap-1.5 min-w-full"
             style={{ gridTemplateColumns: `140px repeat(${group.length}, minmax(76px, 1fr))` }}
@@ -116,7 +168,7 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
               </div>
             ))}
 
-            {sgRows.map(row => (
+            {visibleSgRows.map(row => (
               <Fragment key={row.sgId}>
                 <div className="flex items-center gap-1.5 pr-2" title={row.info?.name}>
                   <span className="font-bold text-slate-700 text-sm">{row.sgId}</span>
@@ -144,6 +196,7 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
               </Fragment>
             ))}
           </div>
+          )}
 
           {/* 범례 */}
           <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-slate-100">
