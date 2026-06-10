@@ -169,7 +169,7 @@ export default function ProjectDetailPage() {
 
       {/* 탭 */}
       <div className="flex border-b border-slate-200 mb-6">
-        {([['overview', 'SW Unit'], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['reference', '참조 데이터'], ['occurrence', 'O값 평가']] as [Tab, string][]).map(([key, label]) => (
+        {([['overview', 'SW Unit'], ['sg', `Safety Goal (${sgs.length})`], ['sm', `Safety Mechanism (${sms.length})`], ['reference', '컴포넌트/인터페이스'], ['occurrence', 'O값 평가']] as [Tab, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}
@@ -179,7 +179,7 @@ export default function ProjectDetailPage() {
 
       {/* 참조 데이터 탭 */}
       {tab === 'reference' && (
-        <ReferenceDataPanel units={units} items={items} sgs={sgs} sms={sms} />
+        <ReferenceDataPanel units={units} items={items} />
       )}
 
       {/* O값 평가 탭 */}

@@ -1,15 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { FmeaItem, SafetyGoal, SafetyMechanism, SwUnit } from '@/lib/supabase'
+import type { FmeaItem, SwUnit } from '@/lib/supabase'
 
-type SubTab = 'component' | 'interface' | 'sg' | 'sm'
+type SubTab = 'component' | 'interface'
 
 const SUB_TABS: [SubTab, string][] = [
   ['component', '컴포넌트'],
   ['interface', '인터페이스'],
-  ['sg', 'Safety Goal'],
-  ['sm', 'Safety Mechanism'],
 ]
 
 type ComponentRow = {
@@ -30,13 +28,9 @@ type InterfaceRow = {
 export default function ReferenceDataPanel({
   units,
   items,
-  sgs,
-  sms,
 }: {
   units: SwUnit[]
   items: FmeaItem[]
-  sgs: SafetyGoal[]
-  sms: SafetyMechanism[]
 }) {
   const [tab, setTab] = useState<SubTab>('component')
   const [search, setSearch] = useState('')
@@ -78,8 +72,6 @@ export default function ReferenceDataPanel({
   const counts: Record<SubTab, number> = {
     component: componentRows.length,
     interface: interfaceRows.length,
-    sg: sgs.length,
-    sm: sms.length,
   }
 
   const q = search.trim().toLowerCase()
@@ -91,14 +83,6 @@ export default function ReferenceDataPanel({
   const filteredInterfaces = q
     ? interfaceRows.filter(r => r.component.toLowerCase().includes(q) || r.variableName.toLowerCase().includes(q))
     : interfaceRows
-
-  const filteredSgs = q
-    ? sgs.filter(s => s.sg_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
-    : sgs
-
-  const filteredSms = q
-    ? sms.filter(s => s.sm_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
-    : sms
 
   const Th = ({ children }: { children: React.ReactNode }) => (
     <th className="px-3 py-2 font-medium text-slate-600 text-left whitespace-nowrap">{children}</th>
@@ -194,73 +178,6 @@ export default function ReferenceDataPanel({
         </div>
       )}
 
-      {/* Safety Goal */}
-      {tab === 'sg' && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <Th>SG ID</Th>
-                <Th>설명</Th>
-                <Th>ASIL</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredSgs.length === 0 ? (
-                <tr><td colSpan={3} className="px-3 py-8 text-center text-slate-400">데이터가 없습니다.</td></tr>
-              ) : filteredSgs.map(sg => (
-                <tr key={sg.id} className="hover:bg-slate-50">
-                  <Td cls="font-mono font-medium text-slate-800">{sg.sg_id}</Td>
-                  <Td>{sg.name}{sg.description ? <span className="text-slate-400"> — {sg.description}</span> : null}</Td>
-                  <Td>
-                    {sg.asil ? (
-                      <span className={`px-1.5 py-0.5 rounded font-mono ${sg.asil === 'B' ? 'bg-red-50 text-red-700' : sg.asil === 'A' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                        ASIL {sg.asil}
-                      </span>
-                    ) : '-'}
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Safety Mechanism */}
-      {tab === 'sm' && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <Th>SM ID</Th>
-                <Th>명칭</Th>
-                <Th>유형</Th>
-                <Th>진단 커버리지</Th>
-                <Th>관련 SG</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredSms.length === 0 ? (
-                <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-400">데이터가 없습니다.</td></tr>
-              ) : filteredSms.map(sm => (
-                <tr key={sm.id} className="hover:bg-slate-50">
-                  <Td cls="font-mono font-medium text-slate-800">{sm.sm_id}</Td>
-                  <Td>{sm.name}</Td>
-                  <Td>{sm.type ?? '-'}</Td>
-                  <Td>
-                    {sm.diagnostic_coverage ? (
-                      <span className={`px-1.5 py-0.5 rounded ${sm.diagnostic_coverage === 'High' ? 'bg-emerald-50 text-emerald-700' : sm.diagnostic_coverage === 'Medium' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                        {sm.diagnostic_coverage}
-                      </span>
-                    ) : '-'}
-                  </Td>
-                  <Td cls="font-mono">{sm.related_sg_id ?? '-'}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   )
 }
