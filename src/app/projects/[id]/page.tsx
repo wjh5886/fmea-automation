@@ -169,8 +169,8 @@ export default function ProjectDetailPage() {
             className="border border-red-200 text-red-500 px-4 py-2 rounded-lg text-sm hover:bg-red-50 transition-colors">
             🗑️ 삭제
           </button>
-          <Link href={`/projects/${id}/fmea?view=report`} className="bg-[#EEF2FF] text-[#4F46E5] border border-indigo-200 px-5 py-2 rounded-lg text-sm hover:bg-indigo-100 transition-colors">
-            분석 리포트 →
+          <Link href={`/projects/${id}/fmea?view=report`} className="bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-violet-700 transition-colors">
+            📊 분석 리포트 →
           </Link>
           <Link href={`/projects/${id}/fmea`} className="bg-[#6366F1] text-white px-5 py-2 rounded-lg text-sm hover:bg-[#4F46E5] transition-colors">
             FMEA 테이블 →
