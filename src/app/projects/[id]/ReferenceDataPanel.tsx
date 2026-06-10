@@ -82,11 +82,8 @@ export default function ReferenceDataPanel({
   return (
     <div>
       {/* 검색 */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <p className="text-sm text-slate-500">
-          Interface ({interfaceRows.length}) — 구분/타입/변수명을 수정하면 이 프로젝트 내 동일한 (SW Unit, 변수명)을 가진 모든 FMEA 항목에 즉시 반영됩니다. (다른 차종 프로젝트에는 영향 없음)
-        </p>
-        <div className="flex-1" />
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <span className="text-sm text-slate-500">Interface ({interfaceRows.length})</span>
         <input
           type="text"
           value={search}
@@ -95,6 +92,7 @@ export default function ReferenceDataPanel({
           className="border border-slate-200 rounded px-2 py-1 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
       </div>
+      <p className="text-xs text-slate-400 mb-3">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
 
       {/* Interface */}
       <div className="overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm" style={{ maxHeight: 'calc(100vh - 16rem)' }}>
