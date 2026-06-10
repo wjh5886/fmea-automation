@@ -45,7 +45,7 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
 
   const pct = (n: number) => (d.total ? ` (${Math.round((n / d.total) * 1000) / 10}%)` : '')
   const cards = [
-    { label: '전체 항목', value: String(d.total), color: 'border-indigo-500 text-indigo-600 bg-indigo-50' },
+    { label: '전체 항목', value: String(d.total), color: 'border-blue-500 text-blue-600 bg-blue-50' },
     { label: 'SG 위반', value: `${d.sgViolations}${pct(d.sgViolations)}`, color: 'border-red-500 text-red-600 bg-red-50' },
     { label: '고위험 (S≥8)', value: `${d.highS}${pct(d.highS)}`, color: 'border-amber-500 text-amber-600 bg-amber-50' },
     { label: '최대 RPN', value: String(d.maxRpn), color: 'border-cyan-500 text-cyan-600 bg-cyan-50' },
@@ -75,7 +75,7 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
             return (
               <div key={s} className="flex-1 flex flex-col items-center gap-0.5 justify-end">
                 <span className="text-[.65rem] text-slate-500">{cnt || ''}</span>
-                <div className={`w-full rounded-t ${S_BAR_COLORS[s] ?? 'bg-indigo-400'} opacity-85`} style={{ height: `${h}px` }} />
+                <div className={`w-full rounded-t ${S_BAR_COLORS[s] ?? 'bg-blue-400'} opacity-85`} style={{ height: `${h}px` }} />
               </div>
             )
           })}
