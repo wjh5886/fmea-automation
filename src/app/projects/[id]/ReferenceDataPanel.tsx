@@ -81,12 +81,13 @@ export default function ReferenceDataPanel({
 
   return (
     <div>
-      <p className="text-xs text-slate-400 mb-2">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
-
       {/* Interface */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <h2 className="font-semibold text-slate-800 text-sm">Interface ({interfaceRows.length})</h2>
+          <div>
+            <h2 className="font-semibold text-slate-800 text-sm">Interface ({interfaceRows.length})</h2>
+            <p className="text-xs text-slate-400 mt-0.5">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
+          </div>
           <input
             type="text"
             value={search}

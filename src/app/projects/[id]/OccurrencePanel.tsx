@@ -109,10 +109,12 @@ export default function OccurrencePanel({
   return (
     <div>
       {showExample && <OccurrenceExampleModal onClose={() => setShowExample(false)} />}
-      <p className="text-xs text-slate-400 mb-2">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
-          <h2 className="font-semibold text-slate-800 text-sm">O값 평가 ({componentRows.length})</h2>
+          <div>
+            <h2 className="font-semibold text-slate-800 text-sm">O값 평가 ({componentRows.length})</h2>
+            <p className="text-xs text-slate-400 mt-0.5">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <input
               type="text"
