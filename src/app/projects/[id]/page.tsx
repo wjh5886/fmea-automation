@@ -172,7 +172,7 @@ export default function ProjectDetailPage() {
           <Link href={`/projects/${id}/fmea`} className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-700 transition-colors">
             📋 FMEA 테이블 →
           </Link>
-          <Link href={`/projects/${id}/fmea?view=report`} className="bg-white border border-slate-300 text-slate-700 px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-50 transition-colors">
+          <Link href={`/projects/${id}/fmea?view=report`} className="bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-colors">
             📊 분석 리포트 →
           </Link>
         </div>

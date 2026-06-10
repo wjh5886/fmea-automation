@@ -55,11 +55,12 @@ export default function ReferenceDataPanel({
     ? interfaceRows.filter(r => r.component.toLowerCase().includes(q) || r.variableName.toLowerCase().includes(q))
     : interfaceRows
 
-  const updateRow = async (row: InterfaceRow, patch: Partial<Pick<InterfaceRow, 'category' | 'variableType'>>) => {
+  const updateRow = async (row: InterfaceRow, patch: Partial<Pick<InterfaceRow, 'category' | 'variableType' | 'variableName'>>) => {
     setSavingKey(row.key)
     const body: Record<string, unknown> = {}
     if ('category' in patch) body.category = patch.category || null
     if ('variableType' in patch) body.variable_type = patch.variableType || null
+    if ('variableName' in patch) body.variable_name = patch.variableName || null
     await Promise.all(row.itemIds.map(itemId =>
       fetch(`/api/projects/${projectId}/items`, {
         method: 'PATCH',
@@ -110,7 +111,17 @@ export default function ReferenceDataPanel({
             ) : filteredInterfaces.map(r => (
               <tr key={r.key} className="hover:bg-slate-50">
                 <Td cls="font-mono">{r.component}</Td>
-                <Td cls="font-mono text-slate-800">{r.variableName}</Td>
+                <Td>
+                  <input
+                    type="text"
+                    defaultValue={r.variableName}
+                    onBlur={e => {
+                      if (e.target.value !== r.variableName) updateRow(r, { variableName: e.target.value })
+                    }}
+                    disabled={savingKey === r.key}
+                    className="border border-slate-200 rounded px-1.5 py-1 text-xs font-mono text-slate-800 w-40 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+                  />
+                </Td>
                 <Td>
                   <select
                     value={r.category ?? ''}
