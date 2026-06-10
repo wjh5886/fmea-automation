@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useState } from 'react'
+import Link from 'next/link'
 import type { Project } from '@/lib/supabase'
 
 export type CrossItem = {
@@ -179,9 +180,14 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
           >
             <div />
             {sortedGroup.map(({ project }) => (
-              <div key={project.id} className="text-[.65rem] font-medium text-slate-600 text-center truncate px-0.5 self-end pb-1" title={project.name}>
+              <Link
+                key={project.id}
+                href={`/projects/${project.id}/fmea?view=report`}
+                className="text-[.65rem] font-medium text-slate-600 text-center truncate px-0.5 self-end pb-1 hover:text-blue-600 hover:underline"
+                title={project.name}
+              >
                 {project.name}
-              </div>
+              </Link>
             ))}
 
             {visibleSgRows.map(row => (
