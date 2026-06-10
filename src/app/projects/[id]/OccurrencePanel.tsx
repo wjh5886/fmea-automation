@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Image from 'next/image'
 import type { FmeaItem, SwUnit } from '@/lib/supabase'
 import {
   type OSelections,
@@ -207,6 +208,15 @@ function OccurrenceExampleModal({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-slate-500 mb-4">
             각 SW Unit에 대해 신규 여부, 인터페이스 변경 수준, 필드 이슈, 변경 유무를 선택하면 O값이 자동 계산됩니다.
           </p>
+          <div className="mb-5 text-center">
+            <Image
+              src="/img/occurrence_example.png"
+              alt="Occurrence(O) Ranking Criteria"
+              width={730}
+              height={1486}
+              className="max-w-full h-auto mx-auto rounded-lg border border-slate-200"
+            />
+          </div>
           <div className="overflow-hidden rounded-xl border border-slate-200">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 border-b border-slate-200">
