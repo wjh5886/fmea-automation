@@ -112,7 +112,7 @@ export default function OccurrencePanel({
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
           <div>
-            <h2 className="font-semibold text-slate-800 text-sm">O값 평가 ({componentRows.length})</h2>
+            <h2 className="font-semibold text-slate-800 text-sm">Occurrence(O) 평가 ({componentRows.length})</h2>
             <p className="text-xs text-slate-400 mt-0.5">평가 항목 변경 시 O값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다 (현재 프로젝트 한정)</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -171,8 +171,8 @@ export default function OccurrencePanel({
                         <Select value={sel.hasChange} options={HAS_CHANGE_OPTIONS} onChange={v => setSel(r.id, { hasChange: v })} />
                       </td>
                       <td className="px-4 py-3 align-top text-center">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${oColorClass(o)}`}>{o}</span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg border-2 text-lg font-bold ${oColorClass(o)}`}>{o}</span>
                           <span className="text-[10px] text-slate-400 whitespace-nowrap">
                             {state === 'saving' ? '저장 중...' : state === 'saved' ? '✓ 반영됨' : ''}
                           </span>

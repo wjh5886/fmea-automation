@@ -49,7 +49,7 @@ export function calcOccurrence(sel: OSelections): number {
 }
 
 export function oColorClass(o: number): string {
-  if (o <= 3) return 'bg-emerald-100 text-emerald-700'
-  if (o <= 6) return 'bg-amber-100 text-amber-700'
-  return 'bg-red-100 text-red-700'
+  if (o <= 3) return 'bg-emerald-50 text-emerald-700 border-emerald-300'
+  if (o <= 6) return 'bg-amber-50 text-amber-700 border-amber-300'
+  return 'bg-red-50 text-red-700 border-red-400'
 }
