@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 마우스 오버 시 좌→우로 흐르는 파란 빛 효과 */
+.hover-shine {
+  background-image: linear-gradient(115deg, transparent 0%, transparent 35%, rgba(37, 99, 235, 0.16) 50%, transparent 65%, transparent 100%);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  transition: background-position 0.7s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
+}
+.hover-shine:hover {
+  background-position: -50% 0;
+}
