@@ -128,35 +128,6 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
         </div>
       )}
 
-      {fmRows.length > 0 && (
-        <div className="overflow-x-auto">
-          <h3 className="text-sm font-bold text-slate-700 mb-2">고장 유형(FM) 비교</h3>
-          <table className="text-sm border-collapse">
-            <thead>
-              <tr>
-                <th className="text-left px-3 py-2 font-medium text-slate-600">FM</th>
-                {data.map(({ project }) => (
-                  <th key={project.id} className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">{project.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {fmRows.map(row => (
-                <tr key={row.fm}>
-                  <td className="px-3 py-2 font-mono font-semibold text-slate-700">{row.fm}</td>
-                  {row.cells.map((c, i) => (
-                    <td key={i} className="px-3 py-2 text-center">
-                      {c.count > 0
-                        ? <span className="text-slate-600">{c.count}건 <span className="text-xs text-slate-400">(avg {c.avgRpn})</span></span>
-                        : <span className="text-slate-300">-</span>}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   )
 }

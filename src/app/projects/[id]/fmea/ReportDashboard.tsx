@@ -201,13 +201,13 @@ export default function ReportDashboard({ items, sgs }: { items: FmeaItem[]; sgs
           <h4 className="text-sm font-bold text-slate-700 mb-2">고장 유형별 분포 &amp; 코드 구현 가이드</h4>
           <div className="flex flex-col gap-2">
             {d.fmDistribution.map(fm => (
-              <details key={fm.key} className="border border-slate-200 rounded-lg overflow-hidden">
+              <details key={fm.key} open className="border border-slate-200 rounded-lg overflow-hidden">
                 <summary className="px-3 py-2 cursor-pointer flex items-center justify-between bg-slate-50 select-none">
                   <span>
                     <strong className="text-sm">{fm.label}</strong>
                     <span className="ml-2.5 text-xs text-slate-500">{fm.count}건 · SG위반 {fm.sgCount}건 · 최대 S{fm.maxS} · {fm.pct}%</span>
                   </span>
-                  <span className="text-xs text-slate-400">▶ 구현 가이드 보기</span>
+                  <span className="text-xs text-slate-400">구현 가이드</span>
                 </summary>
                 <div className="px-4 py-3 bg-white">
                   <div className="text-xs text-slate-600 mb-1.5"><strong>권장 SM:</strong> {fm.sm}</div>
