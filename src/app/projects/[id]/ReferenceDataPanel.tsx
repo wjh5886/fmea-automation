@@ -86,7 +86,7 @@ export default function ReferenceDataPanel({
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
           <div>
             <h2 className="font-semibold text-slate-800 text-sm">Interface ({interfaceRows.length})</h2>
-            <p className="text-xs text-slate-400 mt-0.5">수정 시 동일 항목(SW Unit, 변수명) 전체에 반영됩니다 (현재 프로젝트 한정)</p>
+            <p className="text-xs text-slate-400 mt-0.5">수정한 값은 같은 SW Unit·변수명을 가진 모든 FMEA 항목(현재 프로젝트 내)에 함께 반영됩니다.</p>
           </div>
           <input
             type="text"
