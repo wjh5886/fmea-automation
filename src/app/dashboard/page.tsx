@@ -166,7 +166,7 @@ export default function DashboardPage() {
                   <th className="text-right px-4 py-3 font-medium text-slate-600">평균 RPN</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600">최대 RPN</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600 text-red-500">고위험</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600">FMEA 결과</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
