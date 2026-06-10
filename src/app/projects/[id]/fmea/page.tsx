@@ -546,7 +546,7 @@ export default function FmeaTablePage() {
       <div className="flex border-b border-slate-200 mb-4">
         {([['table', 'FMEA 테이블'], ['reference', '참조 데이터'], ['occurrence', 'O값 평가'], ['report', '분석 리포트']] as [typeof view, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setView(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === key ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === key ? 'border-[#6366F1] text-[#6366F1]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {label}
           </button>
         ))}
@@ -628,7 +628,7 @@ export default function FmeaTablePage() {
             {analyzeError}
           </span>
         )}
-        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+        <button onClick={analyzeAll} disabled={analyzingAll} className="bg-[#6366F1] text-white px-3 py-1.5 rounded text-sm hover:bg-[#4F46E5] disabled:opacity-50 flex items-center gap-2">
           {analyzingAll && analyzeProgress ? (
             <>
               <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
