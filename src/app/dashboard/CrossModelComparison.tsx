@@ -57,6 +57,17 @@ const LEGEND = [
   { label: '위반 없음', cls: 'bg-slate-50 border border-slate-200' },
 ]
 
+// SBW SG01~06 표준 정의 (JG1 기준) — 프로젝트별 safety_goals 입력이 비어있거나
+// placeholder("SG01" 등)인 경우에도 히트맵 행 라벨이 항상 일관되도록 사용
+const CANONICAL_SBW_SG: Record<string, SgInfo> = {
+  SG01: { sg_id: 'SG01', name: '변속(R/N/D) 불가는 방지되어야 한다.', asil: 'A' },
+  SG02: { sg_id: 'SG02', name: 'P단 체결 불가는 방지되어야 한다.', asil: 'A' },
+  SG03: { sg_id: 'SG03', name: '의도하지 않은 변속(R/N/D)는 방지되어야 한다.', asil: 'A' },
+  SG04: { sg_id: 'SG04', name: '의도하지 않은 P단 해제는 방지되어야 한다.', asil: 'B' },
+  SG05: { sg_id: 'SG05', name: '의도하지 않은 P단 체결은 방지되어야 한다.', asil: 'B' },
+  SG06: { sg_id: 'SG06', name: '잘못된 변속단 표시는 방지되어야 한다.', asil: 'B' },
+}
+
 function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossData[] }) {
   const [hiddenSgs, setHiddenSgs] = useState<Set<string>>(new Set())
 
@@ -71,6 +82,7 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
       if (!sgInfo.has(sg.sg_id)) sgInfo.set(sg.sg_id, sg)
     }
   }
+  const canonicalSg = label === 'SBW' ? CANONICAL_SBW_SG : {}
   const sgRows = [...sgIds].sort().map(sgId => {
     const cells = group.map(({ items }) => {
       const violations = items.filter(i => splitSgIds(i.effect_safety_goal).includes(sgId))
@@ -79,7 +91,7 @@ function FolderHeatmap({ label, group }: { label: string; group: ProjectCrossDat
         maxS: violations.length ? Math.max(...violations.map(v => v.severity ?? 0)) : 0,
       }
     })
-    return { sgId, info: sgInfo.get(sgId), cells, projectsAffected: cells.filter(c => c.count > 0).length }
+    return { sgId, info: canonicalSg[sgId] ?? sgInfo.get(sgId), cells, projectsAffected: cells.filter(c => c.count > 0).length }
   }).sort((a, b) => b.projectsAffected - a.projectsAffected || a.sgId.localeCompare(b.sgId))
 
   const visibleSgRows = sgRows.filter(r => !hiddenSgs.has(r.sgId))
