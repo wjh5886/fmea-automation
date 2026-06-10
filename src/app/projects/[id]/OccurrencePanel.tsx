@@ -29,6 +29,7 @@ export default function OccurrencePanel({
   const [selections, setSelections] = useState<Record<string, OSelections>>({})
   const [overrides, setOverrides] = useState<Record<string, number | null>>({})
   const [applyState, setApplyState] = useState<Record<string, ApplyState>>({})
+  const [showExample, setShowExample] = useState(false)
 
   const componentRows = useMemo(() => {
     return units
@@ -100,9 +101,18 @@ export default function OccurrencePanel({
 
   return (
     <div>
-      <p className="text-sm text-slate-500 mb-3">
-        SW Unit별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다.
-      </p>
+      {showExample && <OccurrenceExampleModal onClose={() => setShowExample(false)} />}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-slate-500">
+          SW Unit별 변경 이력을 평가하면 Occurrence(O)값이 자동 계산되어 해당 SW Unit의 모든 FMEA 항목에 즉시 반영됩니다.
+        </p>
+        <button
+          onClick={() => setShowExample(true)}
+          className="shrink-0 ml-3 text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1 hover:bg-indigo-50 whitespace-nowrap"
+        >
+          📋 작성 예시
+        </button>
+      </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-200">
@@ -174,6 +184,53 @@ export default function OccurrencePanel({
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function OccurrenceExampleModal({ onClose }: { onClose: () => void }) {
+  const rows: { label: string; meaning: string; score: string }[] = [
+    { label: '신규 SW Unit', meaning: '기존 동일 / 일부 변경 / 신규 적용', score: '0 / 1 / 3점' },
+    { label: '인터페이스 변경', meaning: '없음 / 낮음 / 높음', score: '0 / 1 / 2점' },
+    { label: '베이스 필드 이슈', meaning: '없음 / 낮음 / 높음', score: '0 / 1 / 2점' },
+    { label: '변경 유무', meaning: '없음 / 있음', score: '0 / 1점' },
+  ]
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+          <h2 className="font-bold text-slate-800 text-sm">Occurrence(O) 평가 — 작성 예시</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+        <div className="p-5 overflow-y-auto">
+          <p className="text-sm text-slate-500 mb-4">
+            각 SW Unit에 대해 신규 여부, 인터페이스 변경 수준, 필드 이슈, 변경 유무를 선택하면 O값이 자동 계산됩니다.
+          </p>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-3 py-2 font-medium text-slate-600 text-left">선택값</th>
+                  <th className="px-3 py-2 font-medium text-slate-600 text-left">의미</th>
+                  <th className="px-3 py-2 font-medium text-slate-600 text-left">O값 기여</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {rows.map(r => (
+                  <tr key={r.label}>
+                    <td className="px-3 py-2 font-semibold text-slate-800 whitespace-nowrap">{r.label}</td>
+                    <td className="px-3 py-2 text-slate-600">{r.meaning}</td>
+                    <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{r.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400 mt-4">
+            총점 0→O=1, ≤2→O=2, ≤4→O=3, ≤5→O=4, ≤6→O=5, ≤7→O=6, ≤8→O=7, ≤9→O=8, 그 외→O=9~10
+          </p>
+        </div>
       </div>
     </div>
   )
