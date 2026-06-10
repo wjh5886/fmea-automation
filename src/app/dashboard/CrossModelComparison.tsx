@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import type { Project } from '@/lib/supabase'
 
 export type CrossItem = {
@@ -27,12 +28,23 @@ const ASIL_COLORS: Record<string, string> = {
 const isSgViolation = (sg: string | null | undefined): sg is string =>
   !!sg && !['X', '-', ''].includes(sg.trim())
 
-function cellColor(maxS: number) {
-  if (maxS >= 9) return 'bg-red-100 text-red-700'
-  if (maxS >= 8) return 'bg-orange-100 text-orange-700'
-  if (maxS > 0) return 'bg-amber-50 text-amber-700'
-  return 'bg-slate-50 text-slate-400'
+function heatColor(count: number, maxS: number) {
+  if (count === 0) return 'bg-slate-50 text-slate-300'
+  if (maxS >= 9) return 'bg-red-600 text-white'
+  if (maxS >= 8) return 'bg-red-400 text-white'
+  if (maxS >= 7) return 'bg-orange-300 text-orange-900'
+  if (maxS >= 5) return 'bg-amber-200 text-amber-900'
+  return 'bg-yellow-100 text-yellow-700'
 }
+
+const LEGEND = [
+  { label: 'S9-10', cls: 'bg-red-600' },
+  { label: 'S8', cls: 'bg-red-400' },
+  { label: 'S7', cls: 'bg-orange-300' },
+  { label: 'S5-6', cls: 'bg-amber-200' },
+  { label: 'S1-4', cls: 'bg-yellow-100' },
+  { label: '위반 없음', cls: 'bg-slate-50 border border-slate-200' },
+]
 
 // 차종(프로젝트) 간 공통 위험 패턴 비교 — 담당자 검토 후 제거될 수 있는 실험적 섹션
 export default function CrossModelComparison({ data }: { data: ProjectCrossData[] }) {
@@ -95,36 +107,59 @@ export default function CrossModelComparison({ data }: { data: ProjectCrossData[
       )}
 
       {sgRows.length > 0 && (
-        <div className="mb-6 overflow-x-auto">
-          <h3 className="text-sm font-bold text-slate-700 mb-2">Safety Goal 위반 비교</h3>
-          <table className="text-sm border-collapse">
-            <thead>
-              <tr>
-                <th className="text-left px-3 py-2 font-medium text-slate-600">SG</th>
-                {data.map(({ project }) => (
-                  <th key={project.id} className="px-3 py-2 font-medium text-slate-600 text-center whitespace-nowrap">{project.name}</th>
+        <div className="overflow-x-auto">
+          <h3 className="text-sm font-bold text-slate-700 mb-3">Safety Goal 위반 히트맵</h3>
+          <div
+            className="inline-grid gap-1.5 min-w-full"
+            style={{ gridTemplateColumns: `140px repeat(${data.length}, minmax(76px, 1fr))` }}
+          >
+            <div />
+            {data.map(({ project }) => (
+              <div key={project.id} className="text-xs font-medium text-slate-600 text-center truncate px-1 self-end pb-1" title={project.name}>
+                {project.name}
+              </div>
+            ))}
+
+            {sgRows.map(row => (
+              <Fragment key={row.sgId}>
+                <div className="flex items-center gap-1.5 pr-2" title={row.info?.name}>
+                  <span className="font-bold text-slate-700 text-sm">{row.sgId}</span>
+                  {row.info?.asil && (
+                    <span className={`px-1.5 py-0.5 rounded text-[.65rem] font-bold ${ASIL_COLORS[row.info.asil] ?? ASIL_COLORS.QM}`}>
+                      {row.info.asil}
+                    </span>
+                  )}
+                </div>
+                {row.cells.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-lg h-14 flex flex-col items-center justify-center transition-colors ${heatColor(c.count, c.maxS)}`}
+                  >
+                    {c.count > 0 ? (
+                      <>
+                        <span className="text-base font-bold leading-tight">{c.count}</span>
+                        <span className="text-[.65rem] opacity-80 leading-tight">S{c.maxS}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs">-</span>
+                    )}
+                  </div>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sgRows.map(row => (
-                <tr key={row.sgId}>
-                  <td className="px-3 py-2 whitespace-nowrap align-top">
-                    <span className="font-bold text-slate-700">{row.sgId}</span>
-                    {row.info?.asil && <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[.65rem] font-bold ${ASIL_COLORS[row.info.asil] ?? ASIL_COLORS.QM}`}>{row.info.asil}</span>}
-                    {row.info?.name && <div className="text-xs text-slate-400">{row.info.name}</div>}
-                  </td>
-                  {row.cells.map((c, i) => (
-                    <td key={i} className="px-3 py-2 text-center align-top">
-                      {c.count > 0
-                        ? <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${cellColor(c.maxS)}`}>{c.count}건 (S{c.maxS})</span>
-                        : <span className="text-slate-300">-</span>}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </Fragment>
+            ))}
+          </div>
+
+          {/* 범례 */}
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-slate-100">
+            <span className="text-xs text-slate-400">심각도</span>
+            {LEGEND.map(l => (
+              <div key={l.label} className="flex items-center gap-1.5 text-xs text-slate-500">
+                <div className={`w-3.5 h-3.5 rounded ${l.cls}`} />
+                {l.label}
+              </div>
+            ))}
+            <span className="ml-auto text-xs text-slate-400">셀 = 위반 건수 / 최대 S값</span>
+          </div>
         </div>
       )}
 

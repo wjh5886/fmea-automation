@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase, type Project } from '@/lib/supabase'
 import CrossModelComparison, { type ProjectCrossData } from './CrossModelComparison'
-import IntegratedReportSection from './IntegratedReportSection'
 
 type ProjectStat = {
   project: Project
@@ -53,13 +52,11 @@ export default function DashboardPage() {
   const [crossData, setCrossData] = useState<ProjectCrossData[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('__all__')
   const [loading, setLoading] = useState(true)
-  const [allProjects, setAllProjects] = useState<Project[]>([])
 
   useEffect(() => {
     async function load() {
       const { data: projects } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
       if (!projects?.length) { setLoading(false); return }
-      setAllProjects(projects)
 
       const results: ProjectStat[] = []
       const allFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
@@ -274,9 +271,6 @@ export default function DashboardPage() {
 
           {/* 차종 간 비교 */}
           <CrossModelComparison data={crossData} />
-
-          {/* 통합 상세 분석 */}
-          <IntegratedReportSection projects={allProjects} />
         </>
       )}
     </div>
