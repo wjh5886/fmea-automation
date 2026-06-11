@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase, type Project } from '@/lib/supabase'
+import CrossModelComparison, { type ProjectCrossData } from './CrossModelComparison'
 
 type ProjectStat = {
   project: Project
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<ProjectStat[]>([])
   const [fmAll, setFmAll] = useState<FmStat[]>([])
   const [fmByProject, setFmByProject] = useState<Record<string, FmStat[]>>({})
+  const [crossData, setCrossData] = useState<ProjectCrossData[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('__all__')
   const [loading, setLoading] = useState(true)
 
@@ -59,12 +61,19 @@ export default function DashboardPage() {
       const results: ProjectStat[] = []
       const allFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
       const byProject: Record<string, FmStat[]> = {}
+      const cross: ProjectCrossData[] = []
 
       for (const project of projects) {
-        const { data: items } = await supabase
-          .from('fmea_items')
-          .select('severity,occurrence,detection,rpn,failure_mode')
-          .eq('project_id', project.id)
+        const [{ data: items }, { data: sgs }] = await Promise.all([
+          supabase
+            .from('fmea_items')
+            .select('severity,occurrence,detection,rpn,failure_mode,effect_safety_goal')
+            .eq('project_id', project.id),
+          supabase
+            .from('safety_goals')
+            .select('sg_id,name,asil')
+            .eq('project_id', project.id),
+        ])
 
         if (!items) continue
         const filled = items.filter(i => i.severity && i.occurrence && i.detection)
@@ -77,6 +86,7 @@ export default function DashboardPage() {
           avgRpn: rpns.length ? Math.round(rpns.reduce((a, b) => a + b, 0) / rpns.length) : 0,
           maxRpn: rpns.length ? Math.max(...rpns) : 0,
         })
+        cross.push({ project, items, sgs: sgs ?? [] })
 
         const projFmMap: Record<string, { count: number; rpnSum: number; highRisk: number }> = {}
         for (const item of items) {
@@ -93,6 +103,7 @@ export default function DashboardPage() {
       setStats(results)
       setFmAll(buildFmStats(allFmMap))
       setFmByProject(byProject)
+      setCrossData(cross)
       setLoading(false)
     }
     load()
@@ -152,7 +163,7 @@ export default function DashboardPage() {
                   <th className="text-right px-4 py-3 font-medium text-slate-600">평균 RPN</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600">최대 RPN</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600 text-red-500">고위험</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="text-right px-4 py-3 font-medium text-slate-600">FMEA 결과</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -205,7 +216,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Failure Mode 분포 */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-slate-800">Failure Mode 분포</h2>
               <select
@@ -257,6 +268,9 @@ export default function DashboardPage() {
               <div className="ml-auto text-xs text-slate-400">⚠ = 고위험(≥100) 수</div>
             </div>
           </div>
+
+          {/* 차종 간 비교 */}
+          <CrossModelComparison data={crossData} />
         </>
       )}
     </div>

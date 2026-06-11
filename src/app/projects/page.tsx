@@ -34,7 +34,7 @@ function ProjectCard({
   }, [menuOpen])
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow flex items-center justify-between group">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 hover-shine hover:border-blue-500 hover:shadow-lg hover:shadow-blue-200/60 hover:-translate-y-0.5 flex items-center justify-between group">
       <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
         <div className="font-semibold text-slate-800">{project.name}</div>
         {project.vehicle_model && <div className="text-sm text-slate-500 mt-1">차종: {project.vehicle_model}</div>}
@@ -65,14 +65,14 @@ function ProjectCard({
                 <div className="px-3 py-1.5 text-xs text-slate-400 font-medium">폴더 이동</div>
                 {FOLDERS.map(f => (
                   <button key={f} onClick={() => { onMove?.(project.id, f); setMenuOpen(false) }}
-                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2
+                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 flex items-center gap-2
                       ${project.folder === f ? 'text-blue-600 font-medium' : 'text-slate-700'}`}>
                     <span>📁</span> {f}
                     {project.folder === f && <span className="ml-auto text-blue-400">✓</span>}
                   </button>
                 ))}
                 <button onClick={() => { onMove?.(project.id, null); setMenuOpen(false) }}
-                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 flex items-center gap-2
                     ${!project.folder ? 'text-blue-600 font-medium' : 'text-slate-700'}`}>
                   <span>📄</span> 미분류
                   {!project.folder && <span className="ml-auto text-blue-400">✓</span>}
@@ -112,7 +112,7 @@ function FolderSection({
   return (
     <div className="mb-4">
       <button onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 group mb-2">
+        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-blue-50 group mb-2">
         <span className="text-slate-400 text-xs">{open ? '▾' : '▸'}</span>
         <span className="text-base">{icon}</span>
         <span className="font-semibold text-slate-700 text-sm">{title}</span>
@@ -178,13 +178,13 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">FMEA 프로젝트</h1>
         <div className="flex gap-2">
-          <Link href="/projects/compare" className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-400 transition-colors">
+          <Link href="/projects/compare" className="bg-gradient-to-r from-amber-500 to-amber-400 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm shadow-amber-200 hover:from-amber-600 hover:to-amber-500 hover:shadow-amber-300 transition-all">
             프로젝트 비교
           </Link>
-          <Link href="/projects/import" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-500 transition-colors">
+          <Link href="/projects/import" className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm shadow-blue-200 hover:from-blue-700 hover:to-blue-600 hover:shadow-blue-300 transition-all">
             ARXML 가져오기
           </Link>
-          <Link href="/projects/new" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition-colors">
+          <Link href="/projects/new" className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm shadow-slate-300 hover:from-slate-800 hover:to-slate-600 transition-all">
             + 새 프로젝트
           </Link>
         </div>
@@ -202,7 +202,7 @@ export default function ProjectsPage() {
           {/* 삭제된 프로젝트 */}
           <div className="mt-6 border-t border-slate-100 pt-4">
             <button onClick={() => setShowTrash(v => !v)}
-              className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 mb-2">
+              className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-blue-50 mb-2">
               <span className="text-slate-400 text-xs">{showTrash ? '▾' : '▸'}</span>
               <span className="text-base">🗑️</span>
               <span className="font-semibold text-slate-500 text-sm">삭제된 프로젝트</span>
